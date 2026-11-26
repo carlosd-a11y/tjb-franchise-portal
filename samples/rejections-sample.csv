@@ -1,0 +1,11 @@
+address,city,state,zip,rejectedBy,rejectedAt,reasonCode,reasonText
+123 Fake Palm Ave,Sample City,FL,00001,Historical Import,2024-06-01T00:00:00.000Z,rent,FAKE demo row. Rent was above the cap.
+456 Imaginary Boardwalk,Sample City,FL,00001,Historical Import,2024-07-12T00:00:00.000Z,traffic,FAKE demo row. Foot traffic was too light.
+789 Not A Real Street,Fictional Beach,FL,00002,Historical Import,2023-11-03T00:00:00.000Z,competition,FAKE demo row. Three juice bars already on this block.
+10 Pretend Plaza,Nowhere,GA,00003,Historical Import,2025-01-20T00:00:00.000Z,size,FAKE demo row. The floor plate was too small.
+55 Demo Lane,Nowhere,GA,00003,Historical Import,2025-02-02T00:00:00.000Z,parking,FAKE demo row. No customer parking.
+8 Mythic Ave,Example Harbor,FL,33139,Historical Import,2024-09-09T00:00:00.000Z,visibility,FAKE demo row. Hidden from the main road.
+77 Placeholder Rd,Example Harbor,FL,33139,Historical Import,2024-04-18T00:00:00.000Z,zoning,FAKE demo row. Zoning would not allow a juice bar.
+4 Madeup Court,Sample City,FL,00001,Historical Import,2022-12-01T00:00:00.000Z,landlord,FAKE demo row. Landlord would not allow food service.
+12 Cartoon Blvd,Nowhere,GA,00004,Historical Import,2025-03-03T00:00:00.000Z,demographics,FAKE demo row. Not enough daytime population.
+99 Test Fixture Way,Nowhere,GA,00004,Historical Import,2025-03-04T00:00:00.000Z,other,FAKE demo row. The owner pulled the site.

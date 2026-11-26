@@ -1,0 +1,458 @@
+rules_version = '2';
+// Prototype rules for the Tropical Juice Bar franchise portal.
+// Review them before a real project goes live. They are written for the
+// standard Firestore rules engine used by the Local Emulator Suite.
+//
+// ===============================================================
+// Assumed data model
+// ===============================================================
+//
+// Collection: users
+// Document ID: Firebase Auth uid
+// Fields:
+//   - uid: string (required, immutable, equals the document id)
+//   - email: string (required, <= 120)
+//   - name: string (required, 1-80)
+//   - role: 'admin' | 'franchisee' (required)
+//   - active: bool (required)
+// Read: the signed-in owner, or an active admin. List: active admin only.
+// Write: active admin only. An admin cannot deactivate or demote themselves.
+//
+// Collection: invites
+// Document ID: lowercased email
+// Fields: email, name, role, createdBy, createdAt, status pending|provisioned
+// Admin only. An invite does not grant access by itself.
+//
+// Collection: locations
+// Fields:
+//   - address, city: strings
+//   - state: two uppercase letters
+//   - zip: 5 digits
+//   - normalizedAddress: lowercase dedupe key, max 300
+//   - lat, lng: number or null (both or neither)
+//   - sqft: int 1..1000000
+//   - rent: int 0..10000000 monthly dollars
+//   - source: 'manual' or 'bot:<name>' (immutable; client creates are manual)
+//   - status: pool|claimed|researching|touring|submitted|approved|rejected
+//   - claimedBy, claimedByName, claimedAt: null while in the pool
+//   - lastActivityAt, createdAt: timestamps
+//   - createdBy: string (immutable)
+//   - passReason: null, or a 3-500 char string. Required when passing.
+// Passing sets status back to pool. It is not left in a 'passed' status.
+// A claim is allowed when status is pool, or when an active claim's
+// lastActivityAt is strictly older than 30 days.
+//
+// Collection: locations/{id}/notes
+// Fields: text 1-2000, authorUid, authorName, createdAt
+// Active users create. The author may edit text. Admins delete.
+//
+// Collection: locations/{id}/history
+// Fields: fromStatus, toStatus, actorUid, actorName, reason, createdAt
+// A pass (owned status -> pool) requires a reason of at least 3 characters.
+//
+// Collection: rejections
+// Fields: address, city, state, zip, normalizedAddress, rejectedBy,
+//         rejectedAt, reasonCode, reasonText
+// Active users read. Admins write.
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function userExists() {
+      return signedIn() && exists(userPath(request.auth.uid));
+    }
+
+    function userData() {
+      return get(userPath(request.auth.uid)).data;
+    }
+
+    function isActiveUser() {
+      return userExists()
+        && userData().active == true
+        && userData().role in ['admin', 'franchisee'];
+    }
+
+    function isAdmin() {
+      return isActiveUser() && userData().role == 'admin';
+    }
+
+    function userName() {
+      return userData().name;
+    }
+
+    function isOwner() {
+      return isActiveUser() && resource.data.claimedBy == request.auth.uid;
+    }
+
+    function validEmail(value) {
+      return value is string
+        && value.size() >= 5
+        && value.size() <= 120
+        && value.matches('^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$');
+    }
+
+    function nonEmpty(value, max) {
+      return value is string
+        && value.size() >= 1
+        && value.size() <= max
+        && value.matches('.*[^ ].*');
+    }
+
+    function locationKeys() {
+      return [
+        'address', 'city', 'state', 'zip', 'normalizedAddress',
+        'lat', 'lng', 'sqft', 'rent', 'source', 'status',
+        'claimedBy', 'claimedByName', 'claimedAt',
+        'lastActivityAt', 'createdBy', 'createdAt', 'passReason'
+      ];
+    }
+
+    function statusOk(status) {
+      return status in [
+        'pool', 'claimed', 'researching', 'touring', 'submitted', 'approved', 'rejected'
+      ];
+    }
+
+    function claimShape(data) {
+      let open = data.status == 'pool';
+      let active = data.status in ['claimed', 'researching', 'touring', 'submitted'];
+      let named = data.claimedBy is string
+        && data.claimedBy.size() >= 1
+        && data.claimedBy.size() <= 128
+        && data.claimedByName is string
+        && data.claimedByName.size() >= 1
+        && data.claimedByName.size() <= 80
+        && data.claimedAt is timestamp;
+      let empty = data.claimedBy == null && data.claimedByName == null && data.claimedAt == null;
+      return (open && empty) || (active && named) || (!open && !active && (empty || named));
+    }
+
+    function geoOk(data) {
+      return (data.lat == null && data.lng == null)
+        || (data.lat is number && data.lng is number
+            && data.lat >= -90 && data.lat <= 90
+            && data.lng >= -180 && data.lng <= 180);
+    }
+
+    function isValidLocation(data) {
+      return data.keys().hasOnly(locationKeys())
+        && data.keys().hasAll(locationKeys())
+        && nonEmpty(data.address, 200)
+        && nonEmpty(data.city, 80)
+        && data.state is string
+        && data.state.matches('^[A-Z]{2}$')
+        && data.zip is string
+        && data.zip.matches('^[0-9]{5}$')
+        && data.normalizedAddress is string
+        && data.normalizedAddress.size() >= 1
+        && data.normalizedAddress.size() <= 300
+        && data.normalizedAddress.matches('^[a-z0-9| -]+$')
+        && data.sqft is int
+        && data.sqft >= 1
+        && data.sqft <= 1000000
+        && data.rent is int
+        && data.rent >= 0
+        && data.rent <= 10000000
+        && data.source is string
+        && data.source.matches('^manual$|^bot:[a-z0-9-]{1,24}$')
+        && statusOk(data.status)
+        && claimShape(data)
+        && data.lastActivityAt is timestamp
+        && data.createdAt is timestamp
+        && data.createdBy is string
+        && data.createdBy.size() >= 1
+        && data.createdBy.size() <= 128
+        && (data.passReason == null
+            || (data.passReason is string
+                && data.passReason.size() >= 3
+                && data.passReason.size() <= 500))
+        && geoOk(data);
+    }
+
+    function isValidUser(data, userId) {
+      return data.keys().hasOnly(['uid', 'email', 'name', 'role', 'active'])
+        && data.keys().hasAll(['uid', 'email', 'name', 'role', 'active'])
+        && data.uid == userId
+        && data.uid is string
+        && data.uid.matches('^[A-Za-z0-9_-]{1,128}$')
+        && validEmail(data.email)
+        && nonEmpty(data.name, 80)
+        && data.role in ['admin', 'franchisee']
+        && data.active is bool;
+    }
+
+    function isValidInvite(data) {
+      return data.keys().hasOnly(['email', 'name', 'role', 'createdBy', 'createdAt', 'status'])
+        && data.keys().hasAll(['email', 'name', 'role', 'createdBy', 'createdAt', 'status'])
+        && validEmail(data.email)
+        && nonEmpty(data.name, 80)
+        && data.role in ['admin', 'franchisee']
+        && data.createdBy is string
+        && data.createdBy.size() >= 1
+        && data.createdBy.size() <= 128
+        && data.createdAt is timestamp
+        && data.status in ['pending', 'provisioned'];
+    }
+
+    function reasonOk(code) {
+      return code in [
+        'rent', 'traffic', 'competition', 'size', 'zoning',
+        'parking', 'visibility', 'landlord', 'demographics', 'other'
+      ];
+    }
+
+    function isValidRejection(data) {
+      return data.keys().hasOnly([
+          'address', 'city', 'state', 'zip', 'normalizedAddress',
+          'rejectedBy', 'rejectedAt', 'reasonCode', 'reasonText'
+        ])
+        && data.keys().hasAll([
+          'address', 'city', 'state', 'zip', 'normalizedAddress',
+          'rejectedBy', 'rejectedAt', 'reasonCode', 'reasonText'
+        ])
+        && nonEmpty(data.address, 200)
+        && nonEmpty(data.city, 80)
+        && data.state is string
+        && data.state.matches('^[A-Z]{2}$')
+        && data.zip is string
+        && data.zip.matches('^[0-9]{5}$')
+        && data.normalizedAddress is string
+        && data.normalizedAddress.size() >= 1
+        && data.normalizedAddress.size() <= 300
+        && nonEmpty(data.rejectedBy, 120)
+        && data.rejectedAt is timestamp
+        && reasonOk(data.reasonCode)
+        && data.reasonText is string
+        && data.reasonText.size() >= 1
+        && data.reasonText.size() <= 500;
+    }
+
+    function isValidNote(data) {
+      return data.keys().hasOnly(['text', 'authorUid', 'authorName', 'createdAt'])
+        && data.keys().hasAll(['text', 'authorUid', 'authorName', 'createdAt'])
+        && data.text is string
+        && data.text.size() >= 1
+        && data.text.size() <= 2000
+        && data.authorUid is string
+        && data.authorUid.size() >= 1
+        && data.authorUid.size() <= 128
+        && nonEmpty(data.authorName, 80)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidHistory(data) {
+      let passing = data.toStatus == 'pool'
+        && data.fromStatus in ['claimed', 'researching', 'touring', 'submitted'];
+      return data.keys().hasOnly(['fromStatus', 'toStatus', 'actorUid', 'actorName', 'reason', 'createdAt'])
+        && data.keys().hasAll(['fromStatus', 'toStatus', 'actorUid', 'actorName', 'reason', 'createdAt'])
+        && statusOk(data.fromStatus)
+        && statusOk(data.toStatus)
+        && data.actorUid == request.auth.uid
+        && data.actorName == userName()
+        && data.createdAt == request.time
+        && (data.reason == null || (data.reason is string && data.reason.size() <= 500))
+        && (!passing || (data.reason is string && data.reason.size() >= 3));
+    }
+
+    function onlyChanged(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    function isClaimable() {
+      return resource.data.status == 'pool'
+        || (resource.data.status in ['claimed', 'researching', 'touring', 'submitted']
+            && resource.data.lastActivityAt is timestamp
+            && resource.data.lastActivityAt + duration.value(30, 'd') < request.time);
+    }
+
+    function isCreateLocation(locationId) {
+      let data = request.resource.data;
+      return isActiveUser()
+        && locationId.matches('^[A-Za-z0-9_-]{1,128}$')
+        && isValidLocation(data)
+        && data.status == 'pool'
+        && data.source == 'manual'
+        && data.createdBy == request.auth.uid
+        && data.createdAt == request.time
+        && data.lastActivityAt == request.time
+        && data.passReason == null;
+    }
+
+    // Update checks stay small on purpose. onlyChanged() freezes every field
+    // that the transition does not list, so a previously valid document cannot
+    // grow new fields or rewrite the address during a claim, pass, or status move.
+    // Creates still run the full isValidLocation() validator.
+
+    function isClaimUpdate() {
+      return isClaimable()
+        && isActiveUser()
+        && resource.data.claimedBy != request.auth.uid
+        && request.resource.data.status == 'claimed'
+        && request.resource.data.claimedBy == request.auth.uid
+        && request.resource.data.claimedByName == userName()
+        && request.resource.data.claimedAt == request.time
+        && request.resource.data.lastActivityAt == request.time
+        && request.resource.data.passReason == null
+        && onlyChanged(['status', 'claimedBy', 'claimedByName', 'claimedAt', 'lastActivityAt', 'passReason']);
+    }
+
+    function isAdvance() {
+      return (isOwner() || isAdmin())
+        && request.resource.data.lastActivityAt == request.time
+        && onlyChanged(['status', 'lastActivityAt'])
+        && ((resource.data.status == 'claimed' && request.resource.data.status == 'researching')
+          || (resource.data.status == 'researching' && request.resource.data.status == 'touring')
+          || (resource.data.status == 'touring' && request.resource.data.status == 'submitted'));
+    }
+
+    function isPass() {
+      return (isOwner() || isAdmin())
+        && resource.data.status in ['claimed', 'researching', 'touring', 'submitted']
+        && request.resource.data.status == 'pool'
+        && request.resource.data.claimedBy == null
+        && request.resource.data.claimedByName == null
+        && request.resource.data.claimedAt == null
+        && request.resource.data.passReason is string
+        && request.resource.data.passReason.size() >= 3
+        && request.resource.data.passReason.size() <= 500
+        && request.resource.data.lastActivityAt == request.time
+        && onlyChanged(['status', 'claimedBy', 'claimedByName', 'claimedAt', 'lastActivityAt', 'passReason']);
+    }
+
+    function isAdminClose() {
+      return isAdmin()
+        && request.resource.data.lastActivityAt == request.time
+        && onlyChanged(['status', 'lastActivityAt'])
+        && ((resource.data.status == 'submitted' && request.resource.data.status == 'approved')
+          || (request.resource.data.status == 'rejected'
+              && resource.data.status in ['pool', 'claimed', 'researching', 'touring', 'submitted']));
+    }
+
+    function isActivityBump() {
+      return (isOwner() || isAdmin())
+        && resource.data.status in ['claimed', 'researching', 'touring', 'submitted']
+        && request.resource.data.lastActivityAt == request.time
+        && onlyChanged(['lastActivityAt']);
+    }
+
+    function locationPath(locationId) {
+      return /databases/$(database)/documents/locations/$(locationId);
+    }
+
+    function parentData(locationId) {
+      return get(locationPath(locationId)).data;
+    }
+
+    function parentClaimable(locationId) {
+      let data = parentData(locationId);
+      return data.status == 'pool'
+        || (data.status in ['claimed', 'researching', 'touring', 'submitted']
+            && data.lastActivityAt + duration.value(30, 'd') < request.time);
+    }
+
+    function historyMoveOk(locationId, data) {
+      let parent = parentData(locationId);
+      let claimMove = data.toStatus == 'claimed' && parentClaimable(locationId);
+      let ownerMove = (data.fromStatus == 'claimed' && data.toStatus == 'researching')
+        || (data.fromStatus == 'researching' && data.toStatus == 'touring')
+        || (data.fromStatus == 'touring' && data.toStatus == 'submitted')
+        || (data.toStatus == 'pool' && data.fromStatus in ['claimed', 'researching', 'touring', 'submitted']);
+      let adminMove = (data.fromStatus == 'submitted' && data.toStatus == 'approved')
+        || (data.toStatus == 'rejected'
+            && data.fromStatus in ['pool', 'claimed', 'researching', 'touring', 'submitted']);
+      return parent.status == data.fromStatus
+        && ((claimMove && data.actorUid == request.auth.uid)
+            || (ownerMove && (isAdmin() || parent.claimedBy == request.auth.uid))
+            || (adminMove && isAdmin()));
+    }
+
+    match /users/{userId} {
+      allow get: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isValidUser(request.resource.data, userId);
+      allow update: if isAdmin()
+        && isValidUser(request.resource.data, userId)
+        && request.resource.data.uid == resource.data.uid
+        && (request.auth.uid != userId
+            || (request.resource.data.active == true && request.resource.data.role == 'admin'));
+      allow delete: if isAdmin() && request.auth.uid != userId;
+    }
+
+    match /invites/{inviteId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && inviteId == request.resource.data.email
+        && inviteId.size() <= 120
+        && isValidInvite(request.resource.data)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.status == 'pending';
+      allow update: if isAdmin()
+        && isValidInvite(request.resource.data)
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt
+        && inviteId == request.resource.data.email;
+      allow delete: if isAdmin();
+    }
+
+    match /rejections/{rejectionId} {
+      allow read: if isActiveUser();
+      allow create: if isAdmin() && isValidRejection(request.resource.data);
+      allow update: if isAdmin() && isValidRejection(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /locations/{locationId} {
+      allow read: if isActiveUser();
+      allow create: if isCreateLocation(locationId);
+      // Separate allow lines so each transition stays under the rules
+      // expression limit. They are still OR'd: any one true line allows the write.
+      allow update: if isActivityBump();
+      allow update: if isClaimUpdate();
+      allow update: if isAdvance();
+      allow update: if isPass();
+      allow update: if isAdminClose();
+      allow delete: if isAdmin();
+
+      match /notes/{noteId} {
+        allow read: if isActiveUser();
+        allow create: if isActiveUser()
+          && noteId.matches('^[A-Za-z0-9_-]{1,128}$')
+          && exists(locationPath(locationId))
+          && isValidNote(request.resource.data)
+          && request.resource.data.authorUid == request.auth.uid
+          && request.resource.data.authorName == userName()
+          && request.resource.data.createdAt == request.time;
+        allow update: if isActiveUser()
+          && resource.data.authorUid == request.auth.uid
+          && isValidNote(request.resource.data)
+          && request.resource.data.authorUid == resource.data.authorUid
+          && request.resource.data.authorName == resource.data.authorName
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text']);
+        allow delete: if isAdmin();
+      }
+
+      match /history/{historyId} {
+        allow read: if isActiveUser();
+        allow create: if isActiveUser()
+          && historyId.matches('^[A-Za-z0-9_-]{1,128}$')
+          && exists(locationPath(locationId))
+          && isValidHistory(request.resource.data)
+          && historyMoveOk(locationId, request.resource.data);
+        allow update: if false;
+        allow delete: if isAdmin();
+      }
+    }
+  }
+}
