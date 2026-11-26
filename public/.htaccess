@@ -1,0 +1,35 @@
+# Tropical Juice Bar franchise portal.
+# Upload the contents of dist/ and the api/ directory into the subdomain document root.
+Options -Indexes -MultiViews
+DirectoryIndex index.html
+
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+</IfModule>
+
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+
+RewriteEngine On
+
+# HTTPS. Skipped for localhost so a local Apache check still works.
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+RewriteCond %{HTTP_HOST} !^localhost [NC]
+RewriteCond %{HTTP_HOST} !^127\.0\.0\.1 [NC]
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Owner: set this to the absolute path of the intake config OUTSIDE the web root.
+# SetEnv TJ_INTAKE_CONFIG /home/USER/private/tj-intake-config.php
+
+RewriteRule ^api/ - [L]
+
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+RewriteRule ^ index.html [L]

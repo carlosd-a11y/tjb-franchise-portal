@@ -1,0 +1,306 @@
+[
+  {
+    "id": "drive-abbr",
+    "address": "100 Demo Harbor Dr.",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139-1234",
+    "normalized": "100 demo harbor drive|miami|fl|33139"
+  },
+  {
+    "id": "drive-full",
+    "address": "100 Demo Harbor Drive",
+    "city": "Miami",
+    "state": "fl",
+    "zip": "33139",
+    "normalized": "100 demo harbor drive|miami|fl|33139"
+  },
+  {
+    "id": "street-abbr",
+    "address": "100 Main St",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "100 main street|miami|fl|33139"
+  },
+  {
+    "id": "street-full",
+    "address": "100 Main Street",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "100 main street|miami|fl|33139"
+  },
+  {
+    "id": "avenue",
+    "address": "10 Ocean Ave",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "10 ocean avenue|miami|fl|33139"
+  },
+  {
+    "id": "avenue-full",
+    "address": "10 Ocean Avenue",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "10 ocean avenue|miami|fl|33139"
+  },
+  {
+    "id": "road",
+    "address": "200 Sample Bay Rd",
+    "city": "Tampa",
+    "state": "FL",
+    "zip": "33602",
+    "normalized": "200 sample bay road|tampa|fl|33602"
+  },
+  {
+    "id": "road-full",
+    "address": "200 Sample Bay Road",
+    "city": "Tampa",
+    "state": "FL",
+    "zip": "33602",
+    "normalized": "200 sample bay road|tampa|fl|33602"
+  },
+  {
+    "id": "boulevard",
+    "address": "8 Mythic Blvd",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "8 mythic boulevard|miami|fl|33139"
+  },
+  {
+    "id": "boulevard-full",
+    "address": "8 Mythic Boulevard",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "8 mythic boulevard|miami|fl|33139"
+  },
+  {
+    "id": "lane",
+    "address": "55 Demo Ln",
+    "city": "Nowhere",
+    "state": "GA",
+    "zip": "00003",
+    "normalized": "55 demo lane|nowhere|ga|00003"
+  },
+  {
+    "id": "lane-full",
+    "address": "55 Demo Lane",
+    "city": "Nowhere",
+    "state": "GA",
+    "zip": "00003",
+    "normalized": "55 demo lane|nowhere|ga|00003"
+  },
+  {
+    "id": "court",
+    "address": "3 Quiet Test Ct",
+    "city": "Fort Lauderdale",
+    "state": "FL",
+    "zip": "33301",
+    "normalized": "3 quiet test court|fort lauderdale|fl|33301"
+  },
+  {
+    "id": "court-full",
+    "address": "3 Quiet Test Court",
+    "city": "Fort Lauderdale",
+    "state": "FL",
+    "zip": "33301",
+    "normalized": "3 quiet test court|fort lauderdale|fl|33301"
+  },
+  {
+    "id": "place",
+    "address": "9 River Pl",
+    "city": "Jacksonville",
+    "state": "FL",
+    "zip": "32202",
+    "normalized": "9 river place|jacksonville|fl|32202"
+  },
+  {
+    "id": "place-full",
+    "address": "9 River Place",
+    "city": "Jacksonville",
+    "state": "FL",
+    "zip": "32202",
+    "normalized": "9 river place|jacksonville|fl|32202"
+  },
+  {
+    "id": "parkway",
+    "address": "70 Grove Pkwy",
+    "city": "Tampa",
+    "state": "FL",
+    "zip": "33606",
+    "normalized": "70 grove parkway|tampa|fl|33606"
+  },
+  {
+    "id": "parkway-full",
+    "address": "70 Grove Parkway",
+    "city": "Tampa",
+    "state": "FL",
+    "zip": "33606",
+    "normalized": "70 grove parkway|tampa|fl|33606"
+  },
+  {
+    "id": "highway",
+    "address": "US Hwy 1",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "us highway 1|miami|fl|33139"
+  },
+  {
+    "id": "highway-dotted",
+    "address": "U.S. Highway 1",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "us highway 1|miami|fl|33139"
+  },
+  {
+    "id": "route",
+    "address": "Rte 66",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "route 66|miami|fl|33139"
+  },
+  {
+    "id": "route-full",
+    "address": "Route 66",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "route 66|miami|fl|33139"
+  },
+  {
+    "id": "direction-n",
+    "address": "123 N Main St",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "123 north main street|miami|fl|33139"
+  },
+  {
+    "id": "direction-north",
+    "address": "123 North Main Street",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "123 north main street|miami|fl|33139"
+  },
+  {
+    "id": "direction-post",
+    "address": "200 Main St N",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "200 main street north|miami|fl|33139"
+  },
+  {
+    "id": "direction-post-full",
+    "address": "200 Main Street North",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "200 main street north|miami|fl|33139"
+  },
+  {
+    "id": "direction-ne",
+    "address": "10 N.E. 8th St",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "10 northeast 8 street|miami|fl|33139"
+  },
+  {
+    "id": "direction-northeast",
+    "address": "10 Northeast 8 Street",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "10 northeast 8 street|miami|fl|33139"
+  },
+  {
+    "id": "ordinal",
+    "address": "123 1st Ave",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "123 1 avenue|miami|fl|33139"
+  },
+  {
+    "id": "ordinal-word",
+    "address": "123 First Avenue",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "123 1 avenue|miami|fl|33139"
+  },
+  {
+    "id": "ordinal-22",
+    "address": "22nd St",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "22 street|miami|fl|33139"
+  },
+  {
+    "id": "unit-apt",
+    "address": "55 Ocean Blvd Apt 4",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "55 ocean boulevard|miami|fl|33139"
+  },
+  {
+    "id": "unit-suite",
+    "address": "55 Ocean Boulevard, Suite 4",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "55 ocean boulevard|miami|fl|33139"
+  },
+  {
+    "id": "unit-hash",
+    "address": "55 Ocean Blvd #4",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "55 ocean boulevard|miami|fl|33139"
+  },
+  {
+    "id": "punctuation",
+    "address": "100  Main   St.,",
+    "city": "Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "100 main street|miami|fl|33139"
+  },
+  {
+    "id": "city-saint-not-street",
+    "address": "A & B Plaza",
+    "city": "St. Pete",
+    "state": "fl",
+    "zip": "33701",
+    "normalized": "a and b plaza|st pete|fl|33701"
+  },
+  {
+    "id": "city-direction",
+    "address": "1 Warning Only Blvd",
+    "city": "N Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "1 warning only boulevard|north miami|fl|33139"
+  },
+  {
+    "id": "city-direction-full",
+    "address": "1 Warning Only Boulevard",
+    "city": "North Miami",
+    "state": "FL",
+    "zip": "33139",
+    "normalized": "1 warning only boulevard|north miami|fl|33139"
+  }
+]
