@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { collection, doc, onSnapshot, orderBy, query } from "firebase/firestore";
+import { watchHistory, watchLocation, watchNotes } from "../data/watch";
 import { useAuth } from "../auth/AuthProvider";
 import { RejectionWarning } from "../components/RejectionWarning";
 import { Banner, Button, Modal, StatusPill, TextArea } from "../components/ui";
@@ -21,7 +21,6 @@ import { money, sourceLabel, sqft } from "../lib/format";
 import { ACTIVE_CLAIM_STATUSES, ADVANCE_LABEL, NEXT_STATUS, REASON_CODES, REASON_LABEL, STATUS_LABEL } from "../lib/model";
 import { ago, daysLeft, formatWhen, isClaimable, isStaleClaim, toDate } from "../lib/time";
 import { isReasonCode, parseNote, parsePassReason } from "../lib/validators";
-import { db } from "../firebase";
 import type { HistoryRecord, LocationRecord, NoteRecord, ReasonCode, RejectionHit } from "../types";
 
 export function LocationDetailPage() {
@@ -43,28 +42,16 @@ export function LocationDetailPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    return onSnapshot(
-      doc(db, "locations", id),
-      (snap) => {
-        setLocation(snap.exists() ? ({ id: snap.id, ...snap.data() } as LocationRecord) : null);
-      },
+    return watchLocation(
+      id,
+      (row) => setLocation(row),
       (err) => setError(explain(err)),
     );
   }, [id]);
 
-  useEffect(() => {
-    return onSnapshot(
-      query(collection(db, "locations", id, "notes"), orderBy("createdAt", "asc")),
-      (snap) => setNotes(snap.docs.map((item) => ({ id: item.id, ...item.data() }) as NoteRecord)),
-    );
-  }, [id]);
+  useEffect(() => watchNotes(id, setNotes), [id]);
 
-  useEffect(() => {
-    return onSnapshot(
-      query(collection(db, "locations", id, "history"), orderBy("createdAt", "asc")),
-      (snap) => setHistory(snap.docs.map((item) => ({ id: item.id, ...item.data() }) as HistoryRecord)),
-    );
-  }, [id]);
+  useEffect(() => watchHistory(id, setHistory), [id]);
 
   useEffect(() => {
     if (!location) return;

@@ -1,136 +1,40 @@
-import { FirebaseError } from "firebase/app";
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  runTransaction,
-  serverTimestamp,
-  setDoc,
-  Timestamp,
-  updateDoc,
-  where,
-  writeBatch,
-} from "firebase/firestore";
-import { db } from "../firebase";
-import { LIMITS, LOCATION_LIST_LIMIT, NEXT_STATUS, REASON_CODES } from "./model";
-import { normalizeAddress } from "./normalize";
-import { isClaimable, toDate } from "./time";
-import type {
-  LocationDoc,
-  LocationStatus,
-  ReasonCode,
-  RejectionDoc,
-  RejectionHit,
-  UserProfile,
-} from "../types";
+import { isDemo } from "../env";
+import { getDemoDb } from "../demo/database";
 import type { CsvRejection } from "./csv";
+import { explain, isReason } from "./explain";
+import type { ReasonCode, RejectionHit, UserProfile } from "../types";
 
-export function explain(error: unknown): string {
-  if (error instanceof FirebaseError) {
-    if (error.code === "permission-denied") return "You don't have access to that.";
-    if (error.code === "unauthenticated") return "Sign in again.";
-    if (error.code === "failed-precondition") return "That change is no longer available.";
-  }
-  if (error instanceof Error && error.message) return error.message;
-  return "Something went wrong.";
-}
+export { explain, isReason };
 
-function historyRef(locationId: string) {
-  return doc(collection(db, "locations", locationId, "history"));
-}
+type LiveApi = typeof import("./firebaseApi");
 
-function historyPayload(
-  profile: UserProfile,
-  fromStatus: LocationStatus,
-  toStatus: LocationStatus,
-  reason: string | null,
-) {
-  return {
-    fromStatus,
-    toStatus,
-    actorUid: profile.uid,
-    actorName: profile.name,
-    reason,
-    createdAt: serverTimestamp(),
-  };
+function live(): Promise<LiveApi> {
+  return import("./firebaseApi");
 }
 
 export async function claimLocation(id: string, profile: UserProfile): Promise<void> {
-  const ref = doc(db, "locations", id);
-  await runTransaction(db, async (tx) => {
-    const snap = await tx.get(ref);
-    if (!snap.exists()) throw new Error("Location not found.");
-    const data = snap.data() as LocationDoc;
-    const last = toDate(data.lastActivityAt);
-    if (!isClaimable(data.status, last)) throw new Error("Someone else already claimed this.");
-    if (data.claimedBy === profile.uid) throw new Error("You already have this one.");
-    tx.update(ref, {
-      status: "claimed",
-      claimedBy: profile.uid,
-      claimedByName: profile.name,
-      claimedAt: serverTimestamp(),
-      lastActivityAt: serverTimestamp(),
-      passReason: null,
-    });
-    tx.set(historyRef(id), historyPayload(profile, data.status, "claimed", null));
-  });
+  if (isDemo) return getDemoDb().claim(id, profile);
+  return (await live()).claimLocation(id, profile);
 }
 
 export async function advanceLocation(id: string, profile: UserProfile): Promise<void> {
-  const ref = doc(db, "locations", id);
-  await runTransaction(db, async (tx) => {
-    const snap = await tx.get(ref);
-    if (!snap.exists()) throw new Error("Location not found.");
-    const data = snap.data() as LocationDoc;
-    const next = NEXT_STATUS[data.status];
-    if (!next) throw new Error("This location can't move forward.");
-    const owner = data.claimedBy === profile.uid || profile.role === "admin";
-    if (!owner) throw new Error("Only the owner can move this forward.");
-    tx.update(ref, { status: next, lastActivityAt: serverTimestamp() });
-    tx.set(historyRef(id), historyPayload(profile, data.status, next, null));
-  });
+  if (isDemo) return getDemoDb().advance(id, profile);
+  return (await live()).advanceLocation(id, profile);
 }
 
 export async function passLocation(id: string, profile: UserProfile, reason: string): Promise<void> {
-  const ref = doc(db, "locations", id);
-  await runTransaction(db, async (tx) => {
-    const snap = await tx.get(ref);
-    if (!snap.exists()) throw new Error("Location not found.");
-    const data = snap.data() as LocationDoc;
-    if (!["claimed", "researching", "touring", "submitted"].includes(data.status)) {
-      throw new Error("This location can't be passed.");
-    }
-    tx.update(ref, {
-      status: "pool",
-      claimedBy: null,
-      claimedByName: null,
-      claimedAt: null,
-      lastActivityAt: serverTimestamp(),
-      passReason: reason,
-    });
-    tx.set(historyRef(id), historyPayload(profile, data.status, "pool", reason));
-  });
+  if (isDemo) return getDemoDb().pass(id, profile, reason);
+  return (await live()).passLocation(id, profile, reason);
 }
 
 export async function keepLocation(id: string): Promise<void> {
-  await updateDoc(doc(db, "locations", id), { lastActivityAt: serverTimestamp() });
+  if (isDemo) return getDemoDb().keep(id);
+  return (await live()).keepLocation(id);
 }
 
 export async function approveLocation(id: string, profile: UserProfile): Promise<void> {
-  const ref = doc(db, "locations", id);
-  await runTransaction(db, async (tx) => {
-    const snap = await tx.get(ref);
-    if (!snap.exists()) throw new Error("Location not found.");
-    const data = snap.data() as LocationDoc;
-    if (data.status !== "submitted") throw new Error("Only a submitted location can be approved.");
-    tx.update(ref, { status: "approved", lastActivityAt: serverTimestamp() });
-    tx.set(historyRef(id), historyPayload(profile, data.status, "approved", null));
-  });
+  if (isDemo) return getDemoDb().approve(id, profile);
+  return (await live()).approveLocation(id, profile);
 }
 
 export async function rejectLocation(
@@ -139,184 +43,51 @@ export async function rejectLocation(
   reasonCode: ReasonCode,
   reasonText: string,
 ): Promise<void> {
-  const ref = doc(db, "locations", id);
-  await runTransaction(db, async (tx) => {
-    const snap = await tx.get(ref);
-    if (!snap.exists()) throw new Error("Location not found.");
-    const data = snap.data() as LocationDoc;
-    if (!["pool", "claimed", "researching", "touring", "submitted"].includes(data.status)) {
-      throw new Error("This location is already closed.");
-    }
-    tx.update(ref, { status: "rejected", lastActivityAt: serverTimestamp() });
-    tx.set(doc(collection(db, "rejections")), {
-      address: data.address,
-      city: data.city,
-      state: data.state,
-      zip: data.zip,
-      normalizedAddress: data.normalizedAddress,
-      rejectedBy: profile.name,
-      rejectedAt: serverTimestamp(),
-      reasonCode,
-      reasonText,
-    });
-    tx.set(historyRef(id), historyPayload(profile, data.status, "rejected", reasonText));
-  });
+  if (isDemo) return getDemoDb().reject(id, profile, reasonCode, reasonText);
+  return (await live()).rejectLocation(id, profile, reasonCode, reasonText);
 }
 
 export async function createLocation(
   profile: UserProfile,
-  fields: Omit<
-    LocationDoc,
-    | "source"
-    | "status"
-    | "claimedBy"
-    | "claimedByName"
-    | "claimedAt"
-    | "lastActivityAt"
-    | "createdBy"
-    | "createdAt"
-    | "passReason"
-  >,
+  fields: Parameters<LiveApi["createLocation"]>[1],
 ): Promise<string> {
-  const existing = await getDocs(
-    query(
-      collection(db, "locations"),
-      where("normalizedAddress", "==", fields.normalizedAddress),
-      limit(1),
-    ),
-  );
-  if (!existing.empty) throw new Error("That address is already in the list.");
-  const ref = await addDoc(collection(db, "locations"), {
-    ...fields,
-    source: "manual",
-    status: "pool",
-    claimedBy: null,
-    claimedByName: null,
-    claimedAt: null,
-    lastActivityAt: serverTimestamp(),
-    createdBy: profile.uid,
-    createdAt: serverTimestamp(),
-    passReason: null,
-  });
-  return ref.id;
+  if (isDemo) return getDemoDb().create(profile, fields);
+  return (await live()).createLocation(profile, fields);
 }
 
 export async function addNote(locationId: string, profile: UserProfile, text: string): Promise<void> {
-  const ref = doc(db, "locations", locationId);
-  await runTransaction(db, async (tx) => {
-    const snap = await tx.get(ref);
-    if (!snap.exists()) throw new Error("Location not found.");
-    const data = snap.data() as LocationDoc;
-    tx.set(doc(collection(db, "locations", locationId, "notes")), {
-      text,
-      authorUid: profile.uid,
-      authorName: profile.name,
-      createdAt: serverTimestamp(),
-    });
-    const active = ["claimed", "researching", "touring", "submitted"].includes(data.status);
-    if (active && (data.claimedBy === profile.uid || profile.role === "admin")) {
-      tx.update(ref, { lastActivityAt: serverTimestamp() });
-    }
-  });
+  if (isDemo) return getDemoDb().addNote(locationId, profile, text);
+  return (await live()).addNote(locationId, profile, text);
 }
 
 export async function updateNote(locationId: string, noteId: string, text: string): Promise<void> {
-  await updateDoc(doc(db, "locations", locationId, "notes", noteId), { text });
+  if (isDemo) return getDemoDb().updateNote(locationId, noteId, text);
+  return (await live()).updateNote(locationId, noteId, text);
 }
 
 export async function deleteLocation(id: string): Promise<void> {
-  const notes = await getDocs(collection(db, "locations", id, "notes"));
-  const history = await getDocs(collection(db, "locations", id, "history"));
-  const refs = [...notes.docs.map((item) => item.ref), ...history.docs.map((item) => item.ref)];
-  while (refs.length > 0) {
-    const batch = writeBatch(db);
-    refs.splice(0, 400).forEach((ref) => batch.delete(ref));
-    await batch.commit();
-  }
-  await deleteDoc(doc(db, "locations", id));
+  if (isDemo) return getDemoDb().deleteLocation(id);
+  return (await live()).deleteLocation(id);
 }
 
 export async function findRejectionHits(normalizedAddress: string, zip: string): Promise<RejectionHit[]> {
-  const [byAddress, byZip] = await Promise.all([
-    getDocs(
-      query(
-        collection(db, "rejections"),
-        where("normalizedAddress", "==", normalizedAddress),
-        limit(10),
-      ),
-    ),
-    getDocs(query(collection(db, "rejections"), where("zip", "==", zip), limit(10))),
-  ]);
-  const hits: RejectionHit[] = [];
-  const seen = new Set<string>();
-  byAddress.forEach((item) => {
-    const data = item.data() as RejectionDoc;
-    seen.add(item.id);
-    hits.push({
-      id: item.id,
-      reasonCode: data.reasonCode,
-      reasonText: data.reasonText,
-      match: "address",
-      city: data.city,
-      state: data.state,
-      zip: data.zip,
-    });
-  });
-  byZip.forEach((item) => {
-    if (seen.has(item.id)) return;
-    const data = item.data() as RejectionDoc;
-    if (data.normalizedAddress === normalizedAddress) return;
-    hits.push({
-      id: item.id,
-      reasonCode: data.reasonCode,
-      reasonText: data.reasonText,
-      match: "zip",
-      city: data.city,
-      state: data.state,
-      zip: data.zip,
-    });
-  });
-  return hits;
-}
-
-export function locationsQuery() {
-  return query(
-    collection(db, "locations"),
-    orderBy("lastActivityAt", "desc"),
-    limit(LOCATION_LIST_LIMIT),
-  );
+  if (isDemo) return getDemoDb().rejectionHits(normalizedAddress, zip);
+  return (await live()).findRejectionHits(normalizedAddress, zip);
 }
 
 export async function importRejections(rows: CsvRejection[]): Promise<void> {
-  for (let index = 0; index < rows.length; index += 400) {
-    const batch = writeBatch(db);
-    rows.slice(index, index + 400).forEach((row) => {
-      batch.set(doc(collection(db, "rejections")), {
-        address: row.address.slice(0, LIMITS.address),
-        city: row.city.slice(0, LIMITS.city),
-        state: row.state,
-        zip: row.zip,
-        normalizedAddress: normalizeAddress(row.address, row.city, row.state, row.zip),
-        rejectedBy: row.rejectedBy.slice(0, LIMITS.rejectedBy),
-        rejectedAt: Timestamp.fromDate(row.rejectedAt),
-        reasonCode: row.reasonCode,
-        reasonText: row.reasonText.slice(0, LIMITS.reason),
-      });
-    });
-    await batch.commit();
-  }
-}
-
-export function isReason(value: string): value is ReasonCode {
-  return (REASON_CODES as string[]).includes(value);
+  if (isDemo) return getDemoDb().importRejections(rows);
+  return (await live()).importRejections(rows);
 }
 
 export async function updateInviteStatus(id: string, status: "pending" | "provisioned"): Promise<void> {
-  await updateDoc(doc(db, "invites", id), { status });
+  if (isDemo) return getDemoDb().updateInviteStatus(id, status);
+  return (await live()).updateInviteStatus(id, status);
 }
 
 export async function saveUser(profile: UserProfile): Promise<void> {
-  await setDoc(doc(db, "users", profile.uid), profile);
+  if (isDemo) return getDemoDb().saveUser(profile);
+  return (await live()).saveUser(profile);
 }
 
 export async function saveInvite(
@@ -325,13 +96,6 @@ export async function saveInvite(
   role: UserProfile["role"],
   createdBy: string,
 ): Promise<void> {
-  const id = email.trim().toLowerCase();
-  await setDoc(doc(db, "invites", id), {
-    email: id,
-    name,
-    role,
-    createdBy,
-    createdAt: serverTimestamp(),
-    status: "pending",
-  });
+  if (isDemo) return getDemoDb().saveInvite(email, name, role, createdBy);
+  return (await live()).saveInvite(email, name, role, createdBy);
 }

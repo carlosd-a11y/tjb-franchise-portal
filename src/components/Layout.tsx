@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { isDemo } from "../env";
 import { useAuth } from "../auth/AuthProvider";
 
 export function Layout() {
@@ -36,9 +37,11 @@ export function Layout() {
             <span>
               {profile?.name} · {admin ? "Admin" : "Franchisee"}
             </span>
-            <button className="text-btn" type="button" onClick={() => void signOutUser()}>
-              Sign out
-            </button>
+            {isDemo ? null : (
+              <button className="text-btn" type="button" onClick={() => void signOutUser()}>
+                Sign out
+              </button>
+            )}
           </div>
         </div>
       </header>

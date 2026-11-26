@@ -1,9 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { watchInvites, watchUsers } from "../data/watch";
 import { useAuth } from "../auth/AuthProvider";
 import { Banner, Button, TextField } from "../components/ui";
 import { explain, saveInvite, saveUser, updateInviteStatus } from "../lib/api";
-import { db } from "../firebase";
 import type { InviteRecord, Role, UserProfile } from "../types";
 
 export function AdminUsersPage() {
@@ -21,14 +20,12 @@ export function AdminUsersPage() {
   const [inviteRole, setInviteRole] = useState<Role>("franchisee");
 
   useEffect(() => {
-    const stopUsers = onSnapshot(
-      query(collection(db, "users"), orderBy("email")),
-      (snap) => setUsers(snap.docs.map((item) => ({ ...(item.data() as UserProfile), uid: item.id }))),
+    const stopUsers = watchUsers(
+      (next) => setUsers(next),
       (err) => setError(explain(err)),
     );
-    const stopInvites = onSnapshot(
-      query(collection(db, "invites"), orderBy("createdAt", "desc")),
-      (snap) => setInvites(snap.docs.map((item) => ({ id: item.id, ...item.data() }) as InviteRecord)),
+    const stopInvites = watchInvites(
+      (next) => setInvites(next),
       (err) => setError(explain(err)),
     );
     return () => {

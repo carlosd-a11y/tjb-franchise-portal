@@ -9,9 +9,10 @@ import {
   type TotpSecret,
 } from "firebase/auth";
 import QRCode from "qrcode";
-import { mfaSetupMessage, useAuth } from "../auth/AuthProvider";
+import { useAuth } from "../auth/AuthProvider";
+import { mfaSetupMessage } from "../auth/authErrors";
 import { Banner, Button, TextField } from "../components/ui";
-import { auth } from "../firebase";
+import { auth } from "../firebaseLive";
 
 export function MfaPage() {
   const { state, signOutUser, noteMfaEnrolled } = useAuth();

@@ -225,6 +225,19 @@ h2 {
 .banner ul { margin: 8px 0 0; padding-left: 18px; }
 .banner li { margin: 4px 0; }
 
+.demo-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 10px 16px;
+  background: #fff8ee;
+  border-bottom: 1px solid #ff9f0a;
+  color: #1d1d1f;
+}
+
+.demo-switch { display: flex; gap: 8px; }
+
 .center-screen {
   min-height: 100vh;
   display: grid;

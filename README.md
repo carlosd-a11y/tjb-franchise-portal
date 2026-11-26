@@ -48,6 +48,10 @@ Emulator UI: http://127.0.0.1:4000. Auth emulator: port 9099. Firestore emulator
 
 `VITE_REQUIRE_TOTP` is `false` in `.env.development` because the official Auth emulator cannot issue TOTP secrets ([firebase-tools #6224](https://github.com/firebase/firebase-tools/issues/6224)). Production `.env.example` sets it to `true`.
 
+## Shareable demo build
+
+`npm run build:demo` writes `dist-demo/`. It is a static site with no Firebase config and no calls to Google. Sample locations live in `localStorage` (Reset sample data puts the fictional seed back). A banner says "Demo, sample data only". Franchisee / Admin switches who you are acting as. The page is `noindex`, and `robots.txt` disallows every crawler. Do not commit `dist-demo/`.
+
 ## Tests
 
 ```bash
@@ -94,7 +98,7 @@ Status values: `pool`, `claimed`, `researching`, `touring`, `submitted`, `approv
 
 `reasonCode`: `rent`, `traffic`, `competition`, `size`, `zoning`, `parking`, `visibility`, `landlord`, `demographics`, `other`.
 
-`normalizedAddress` is `address|city|state|zip5`, lowercased, with punctuation folded and `&` turned into `and`. "St" and "Street" do not match. The same function lives in `src/lib/normalize.ts` and `api/src/Intake.php`.
+`normalizedAddress` is `address|city|state|zip5`. The street line folds case, punctuation, `&`, unit and suite numbers, numeric and word ordinals (`1st` / `First`), directions (`N` / `North`, `NE` / `Northeast`), and these suffixes: St/Street, Ave/Avenue, Rd/Road, Blvd/Boulevard, Dr/Drive, Ln/Lane, Ct/Court, Pl/Place, Pkwy/Parkway, Hwy/Highway, Rte/Route, plus `US` / `U.S.`. A city `St.` is left as `st` so "St. Pete" is not treated as Street. The same function lives in `src/lib/normalize.ts` and `api/src/Intake.php`, checked against `tests/fixtures/address-vectors.json`. A different street in the same ZIP still raises the ZIP warning.
 
 Client creates must use `source: manual` and `status: pool`. Bot rows are written only by the PHP endpoint, which uses a service account and bypasses rules. The endpoint itself only creates pool documents.
 
@@ -208,7 +212,7 @@ address,city,state,zip,rejectedBy,rejectedAt,reasonCode,reasonText
 
 - The Auth emulator cannot complete TOTP. Enrollment is implemented for production Identity Platform and is covered by the config flag.
 - Stale claims are not swept on a timer. They become claimable at the next claim.
-- Address dedupe is exact after normalization, not fuzzy.
+- Address matching folds the suffix, direction, unit, and ordinal forms listed above. It is not a fuzzy geocoder: "Saint Paul" and "St Paul" still differ, and a missing street number will not match.
 - An owner can append a history row for the current status without changing the location. Status changes themselves are enforced on the location document.
 - Rules do not require MFA, for the emulator reason above.
 - Invites do not send email and do not create Auth users.

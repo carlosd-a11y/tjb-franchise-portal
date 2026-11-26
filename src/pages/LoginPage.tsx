@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
-import { authMessage, useAuth } from "../auth/AuthProvider";
+import { useAuth } from "../auth/AuthProvider";
+import { authMessage } from "../auth/authErrors";
 import { Banner, Button, TextField } from "../components/ui";
-import { useEmulators } from "../firebase";
+import { useEmulators } from "../env";
 
 const DEMO_PASSWORD = "DemoPassw0rd!";
 

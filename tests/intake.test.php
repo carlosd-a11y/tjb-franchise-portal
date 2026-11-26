@@ -86,9 +86,12 @@ function body(array $extra = []): string
     ], $extra), JSON_THROW_ON_ERROR);
 }
 
-$norm = intake_normalize_address('100 Demo Harbor Dr.', 'Miami', 'FL', '33139-1234');
-check($norm === '100 demo harbor dr|miami|fl|33139', 'normalize matches the TypeScript form');
-check(intake_normalize_address('A & B Plaza', 'St. Pete', 'fl', '33701') === 'a and b plaza|st pete|fl|33701', 'ampersand and punctuation fold');
+$vectors = json_decode((string) file_get_contents(__DIR__ . '/fixtures/address-vectors.json'), true);
+check(is_array($vectors), 'shared address vectors load');
+foreach ($vectors as $row) {
+    $got = intake_normalize_address($row['address'], $row['city'], $row['state'], $row['zip']);
+    check($got === $row['normalized'], 'vector ' . $row['id']);
+}
 
 $store = new FakeStore();
 $config = tempConfig();
@@ -101,12 +104,27 @@ $log = (string) file_get_contents($config['log_file']);
 check(!str_contains($log, 'test-key-1234567890'), 'logs do not contain the API key');
 check(str_contains($log, 'muse'), 'logs record the source name');
 
+$harbor = intake_normalize_address('100 Demo Harbor Dr.', 'Miami', 'FL', '33139');
 $dup = new FakeStore(locations: [[
     'id' => 'loc-existing',
-    'normalizedAddress' => '100 demo harbor dr|miami|fl|33139',
+    'normalizedAddress' => $harbor,
 ]]);
 [$status, $payload] = intake_process(tempConfig(), 'test-key-1234567890', body(), $dup, '10.0.0.9');
 check($status === 409 && ($payload['id'] ?? '') === 'loc-existing' && $dup->created === [], 'duplicate normalized address is not written again');
+
+$street = intake_normalize_address('100 Main St', 'Miami', 'FL', '33101');
+$fuzzy = new FakeStore(locations: [[
+    'id' => 'loc-main',
+    'normalizedAddress' => $street,
+]]);
+[$status, $payload] = intake_process(
+    tempConfig(),
+    'test-key-1234567890',
+    body(['address' => '100 Main Street', 'zip' => '33101']),
+    $fuzzy,
+    '10.0.0.14',
+);
+check($status === 409 && ($payload['id'] ?? '') === 'loc-main', 'St and Street dedupe to one address');
 
 $warn = new FakeStore(rejections: [[
     'id' => 'rej-zip',

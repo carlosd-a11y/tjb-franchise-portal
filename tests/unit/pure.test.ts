@@ -8,13 +8,27 @@ import { daysLeft, isClaimable, isStaleClaim } from "../../src/lib/time";
 import { parseDraftLocation, parsePassReason } from "../../src/lib/validators";
 
 describe("normalizeAddress", () => {
-  it("folds punctuation, case, and ZIP+4", () => {
-    expect(normalizeAddress("100  Demo Harbor Dr.", "Miami", "FL", "33139-1234")).toBe(
-      "100 demo harbor dr|miami|fl|33139",
-    );
-    expect(normalizeAddress("A & B Plaza", "St. Pete", "fl", "33701")).toBe(
-      "a and b plaza|st pete|fl|33701",
-    );
+  const vectors = JSON.parse(readFileSync("tests/fixtures/address-vectors.json", "utf8")) as Array<{
+    id: string;
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+    normalized: string;
+  }>;
+
+  it("matches the shared vectors used by the PHP intake", () => {
+    for (const row of vectors) {
+      expect(normalizeAddress(row.address, row.city, row.state, row.zip), row.id).toBe(row.normalized);
+    }
+  });
+
+  it("keeps ZIP warnings separate from the street key", () => {
+    const street = normalizeAddress("100 Main St", "Miami", "FL", "33139");
+    const other = normalizeAddress("8 Mythic Blvd", "Miami", "FL", "33139");
+    expect(street).not.toBe(other);
+    expect(street.endsWith("|33139")).toBe(true);
+    expect(other.endsWith("|33139")).toBe(true);
   });
 });
 
@@ -84,7 +98,7 @@ describe("draft validation", () => {
       lng: "",
     });
     expect(parsed).toMatchObject({
-      value: { state: "FL", zip: "33139", normalizedAddress: "100 demo harbor dr|miami|fl|33139" },
+      value: { state: "FL", zip: "33139", normalizedAddress: "100 demo harbor drive|miami|fl|33139" },
     });
   });
 });

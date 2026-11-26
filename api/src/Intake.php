@@ -29,13 +29,117 @@ interface IntakeStore
     public function createLocation(array $fields): string;
 }
 
-function intake_normalize_part(string $value): string
+function intake_scrub(string $value): string
 {
     $value = strtolower(trim($value));
     $value = str_replace('&', ' and ', $value);
-    $value = preg_replace('/[^a-z0-9 -]/', ' ', $value) ?? '';
-    $value = preg_replace('/\s+/', ' ', $value) ?? '';
+    $value = preg_replace('/\bu\s*\.\s*s\s*\.?/', ' us ', $value) ?? $value;
+    $value = preg_replace('/\bn\s*\.\s*e\s*\.?/', ' northeast ', $value) ?? $value;
+    $value = preg_replace('/\bn\s*\.\s*w\s*\.?/', ' northwest ', $value) ?? $value;
+    $value = preg_replace('/\bs\s*\.\s*e\s*\.?/', ' southeast ', $value) ?? $value;
+    $value = preg_replace('/\bs\s*\.\s*w\s*\.?/', ' southwest ', $value) ?? $value;
+    $value = str_replace('#', ' unit ', $value);
+    $value = preg_replace('/[^a-z0-9\s]/', ' ', $value) ?? $value;
+    $value = preg_replace('/\s+/', ' ', $value) ?? $value;
     return trim($value);
+}
+
+function intake_strip_units(string $value): string
+{
+    $previous = '';
+    while ($value !== $previous) {
+        $previous = $value;
+        $value = preg_replace('/\b(apt|apartment|unit|suite|ste)(?:\s+(?:apt|apartment|unit|suite|ste))+\b/', '$1', $value) ?? $value;
+        $value = preg_replace('/\b(?:apt|apartment|unit|suite|ste)\s+[a-z0-9]+\b/', ' ', $value) ?? $value;
+        $value = preg_replace('/\s+/', ' ', $value) ?? $value;
+        $value = trim($value);
+    }
+    return $value;
+}
+
+/**
+ * @return array<string, string>
+ */
+function intake_suffixes(): array
+{
+    return [
+        'st' => 'street', 'street' => 'street',
+        'ave' => 'avenue', 'avenue' => 'avenue',
+        'rd' => 'road', 'road' => 'road',
+        'blvd' => 'boulevard', 'boulevard' => 'boulevard',
+        'dr' => 'drive', 'drive' => 'drive',
+        'ln' => 'lane', 'lane' => 'lane',
+        'ct' => 'court', 'court' => 'court',
+        'pl' => 'place', 'place' => 'place',
+        'pkwy' => 'parkway', 'parkway' => 'parkway',
+        'hwy' => 'highway', 'highway' => 'highway',
+        'rte' => 'route', 'route' => 'route',
+    ];
+}
+
+/**
+ * @return array<string, string>
+ */
+function intake_directions(): array
+{
+    return [
+        'n' => 'north', 's' => 'south', 'e' => 'east', 'w' => 'west',
+        'ne' => 'northeast', 'nw' => 'northwest', 'se' => 'southeast', 'sw' => 'southwest',
+        'north' => 'north', 'south' => 'south', 'east' => 'east', 'west' => 'west',
+        'northeast' => 'northeast', 'northwest' => 'northwest',
+        'southeast' => 'southeast', 'southwest' => 'southwest',
+    ];
+}
+
+/**
+ * @return array<string, string>
+ */
+function intake_word_ordinals(): array
+{
+    return [
+        'first' => '1', 'second' => '2', 'third' => '3', 'fourth' => '4', 'fifth' => '5',
+        'sixth' => '6', 'seventh' => '7', 'eighth' => '8', 'ninth' => '9', 'tenth' => '10',
+    ];
+}
+
+function intake_rewrite_token(string $token, bool $street): string
+{
+    if (preg_match('/^(\d+)(st|nd|rd|th)$/', $token, $ordinal) === 1) {
+        return $ordinal[1];
+    }
+    $words = intake_word_ordinals();
+    if (isset($words[$token])) {
+        return $words[$token];
+    }
+    $directions = intake_directions();
+    if (isset($directions[$token])) {
+        return $directions[$token];
+    }
+    if ($street) {
+        $suffixes = intake_suffixes();
+        if (isset($suffixes[$token])) {
+            return $suffixes[$token];
+        }
+    }
+    return $token;
+}
+
+function intake_rewrite(string $value, bool $street): string
+{
+    $value = intake_scrub($value);
+    if ($street) {
+        $value = intake_strip_units($value);
+        $value = preg_replace('/\bu s\b/', 'us', $value) ?? $value;
+    }
+    $tokens = preg_split('/\s+/', $value, -1, PREG_SPLIT_NO_EMPTY);
+    if ($tokens === false) {
+        return '';
+    }
+    $out = [];
+    foreach ($tokens as $token) {
+        $out[] = intake_rewrite_token($token, $street);
+    }
+    return implode(' ', $out);
 }
 
 function intake_zip5(string $zip): string
@@ -46,12 +150,17 @@ function intake_zip5(string $zip): string
     return '';
 }
 
+/**
+ * Same key as src/lib/normalize.ts. Street suffixes, directions, units, and
+ * ordinals fold on the street line. ZIP warnings use intake_zip5 separately.
+ */
 function intake_normalize_address(string $address, string $city, string $state, string $zip): string
 {
+    $stateKey = preg_replace('/[^a-z]/', '', strtolower($state)) ?? '';
     return implode('|', [
-        intake_normalize_part($address),
-        intake_normalize_part($city),
-        intake_normalize_part($state),
+        intake_rewrite($address, true),
+        intake_rewrite($city, false),
+        $stateKey,
         intake_zip5($zip),
     ]);
 }

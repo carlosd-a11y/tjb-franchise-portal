@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { watchRejections } from "../data/watch";
 import { Banner } from "../components/ui";
 import { explain } from "../lib/api";
 import { REASON_CODES, REASON_LABEL } from "../lib/model";
 import { formatWhen, toDate } from "../lib/time";
-import { db } from "../firebase";
 import type { ReasonCode, RejectionRecord } from "../types";
 
 export function RejectionsPage() {
@@ -13,9 +12,8 @@ export function RejectionsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    return onSnapshot(
-      query(collection(db, "rejections"), orderBy("rejectedAt", "desc")),
-      (snap) => setRows(snap.docs.map((item) => ({ id: item.id, ...item.data() }) as RejectionRecord)),
+    return watchRejections(
+      (next) => setRows(next),
       (err) => setError(explain(err)),
     );
   }, []);

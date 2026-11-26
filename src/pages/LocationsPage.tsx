@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { onSnapshot } from "firebase/firestore";
+import { watchLocations } from "../data/watch";
 import { useAuth } from "../auth/AuthProvider";
 import { StatusPill, Banner, Button } from "../components/ui";
-import { claimLocation, explain, locationsQuery } from "../lib/api";
+import { claimLocation, explain } from "../lib/api";
 import { money, sourceLabel, sqft } from "../lib/format";
 import { matchesLocation, type LocationFilter } from "../lib/filters";
 import { STATUSES, STATUS_LABEL } from "../lib/model";
@@ -20,10 +20,9 @@ export function LocationsPage() {
   const [filter, setFilter] = useState<LocationFilter>({ scope: "all", status: "any", city: "any" });
 
   useEffect(() => {
-    return onSnapshot(
-      locationsQuery(),
-      (snap) => {
-        setRows(snap.docs.map((item) => ({ id: item.id, ...item.data() }) as LocationRecord));
+    return watchLocations(
+      (rows) => {
+        setRows(rows);
         setLoading(false);
       },
       (err) => {
