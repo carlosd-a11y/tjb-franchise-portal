@@ -57,6 +57,39 @@ describe("demo database", () => {
   });
 });
 
+describe("demo address edit", () => {
+  it("fixes an address in place and keeps the claim", () => {
+    const db = createDemoDatabase(memory());
+    db.claim("loc-bay", alex);
+    const before = db.location("loc-bay")!;
+    const fixed = {
+      address: "202 Sample Bay Road",
+      city: "Tampa",
+      state: "FL",
+      zip: "33602",
+      normalizedAddress: normalizeAddress("202 Sample Bay Road", "Tampa", "FL", "33602"),
+    };
+    db.updateAddress("loc-bay", fixed);
+    const after = db.location("loc-bay")!;
+    expect(after.address).toBe("202 Sample Bay Road");
+    expect(after.normalizedAddress).toBe(fixed.normalizedAddress);
+    expect(after.status).toBe("claimed");
+    expect(after.claimedBy).toBe(alex.uid);
+    expect(after.lastActivityAt.toDate().getTime()).toBe(before.lastActivityAt.toDate().getTime());
+
+    const harbor = db.location("loc-harbor")!;
+    expect(() =>
+      db.updateAddress("loc-bay", {
+        address: harbor.address,
+        city: harbor.city,
+        state: harbor.state,
+        zip: harbor.zip,
+        normalizedAddress: harbor.normalizedAddress,
+      }),
+    ).toThrow(/already in the list/);
+  });
+});
+
 describe("rejection hits", () => {
   const rows = [
     {

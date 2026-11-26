@@ -64,6 +64,7 @@ export type DemoDatabase = {
   approve: (id: string, profile: UserProfile) => void;
   reject: (id: string, profile: UserProfile, reasonCode: RejectionRecord["reasonCode"], reasonText: string) => void;
   create: (profile: UserProfile, fields: Omit<RawLocation, "id" | "normalizedAddress" | "source" | "status" | "claimedBy" | "claimedByName" | "claimedAt" | "lastActivityAt" | "createdBy" | "createdAt" | "passReason"> & { normalizedAddress: string }) => string;
+  updateAddress: (id: string, fields: Pick<RawLocation, "address" | "city" | "state" | "zip" | "normalizedAddress">) => void;
   addNote: (locationId: string, profile: UserProfile, text: string) => void;
   updateNote: (locationId: string, noteId: string, text: string) => void;
   deleteLocation: (id: string) => void;
@@ -259,6 +260,18 @@ export function createDemoDatabase(storage: DemoStorage): DemoDatabase {
       });
       persist();
       return id;
+    },
+    updateAddress(id, fields) {
+      const row = loc(id);
+      if (raw.locations.some((item) => item.id !== id && item.normalizedAddress === fields.normalizedAddress)) {
+        throw new Error("That address is already in the list.");
+      }
+      row.address = fields.address;
+      row.city = fields.city;
+      row.state = fields.state;
+      row.zip = fields.zip;
+      row.normalizedAddress = fields.normalizedAddress;
+      persist();
     },
     addNote(locationId, profile, text) {
       const row = loc(locationId);

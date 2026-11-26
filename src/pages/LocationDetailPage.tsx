@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { watchHistory, watchLocation, watchNotes } from "../data/watch";
 import { useAuth } from "../auth/AuthProvider";
 import { RejectionWarning } from "../components/RejectionWarning";
-import { Banner, Button, Modal, StatusPill, TextArea } from "../components/ui";
+import { Banner, Button, Modal, StatusPill, TextArea, TextField } from "../components/ui";
 import {
   addNote,
   advanceLocation,
@@ -15,12 +15,13 @@ import {
   keepLocation,
   passLocation,
   rejectLocation,
+  updateLocationAddress,
   updateNote,
 } from "../lib/api";
 import { money, sourceLabel, sqft } from "../lib/format";
 import { ACTIVE_CLAIM_STATUSES, ADVANCE_LABEL, NEXT_STATUS, REASON_CODES, REASON_LABEL, STATUS_LABEL } from "../lib/model";
 import { ago, daysLeft, formatWhen, isClaimable, isStaleClaim, toDate } from "../lib/time";
-import { isReasonCode, parseNote, parsePassReason } from "../lib/validators";
+import { isReasonCode, parseDraftAddress, parseNote, parsePassReason, type DraftAddress } from "../lib/validators";
 import type { HistoryRecord, LocationRecord, NoteRecord, ReasonCode, RejectionHit } from "../types";
 
 export function LocationDetailPage() {
@@ -35,7 +36,8 @@ export function LocationDetailPage() {
   const [note, setNote] = useState("");
   const [editing, setEditing] = useState("");
   const [editText, setEditText] = useState("");
-  const [modal, setModal] = useState<"" | "pass" | "reject" | "approve" | "delete">("");
+  const [modal, setModal] = useState<"" | "pass" | "reject" | "approve" | "delete" | "address">("");
+  const [addressDraft, setAddressDraft] = useState<DraftAddress>({ address: "", city: "", state: "", zip: "" });
   const [reason, setReason] = useState("");
   const [reasonCode, setReasonCode] = useState<ReasonCode>("rent");
   const [error, setError] = useState("");
@@ -162,6 +164,24 @@ export function LocationDetailPage() {
             {profile.role === "admin" && location.status !== "approved" && location.status !== "rejected" ? (
               <Button type="button" variant="danger" disabled={busy} onClick={() => setModal("reject")}>
                 Reject
+              </Button>
+            ) : null}
+            {profile.role === "admin" ? (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => {
+                  setAddressDraft({
+                    address: location.address,
+                    city: location.city,
+                    state: location.state,
+                    zip: location.zip,
+                  });
+                  setModal("address");
+                }}
+              >
+                Edit address
               </Button>
             ) : null}
             {profile.role === "admin" ? (
@@ -338,6 +358,60 @@ export function LocationDetailPage() {
           <Button type="button" disabled={busy} onClick={() => void run(() => approveLocation(id, profile))}>
             Approve
           </Button>
+        </Modal>
+      ) : null}
+      {modal === "address" ? (
+        <Modal title="Edit address" onClose={() => setModal("")}>
+          <form
+            className="stack"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const parsed = parseDraftAddress(addressDraft);
+              if ("error" in parsed) {
+                setError(parsed.error);
+                return;
+              }
+              void run(() => updateLocationAddress(id, parsed.value));
+            }}
+          >
+            {error ? <Banner tone="bad">{error}</Banner> : null}
+            <p className="hint">Status, claim, notes, and history stay as they are.</p>
+            <TextField
+              name="edit-address"
+              label="Address"
+              value={addressDraft.address}
+              onChange={(event) => setAddressDraft((current) => ({ ...current, address: event.target.value }))}
+              required
+            />
+            <TextField
+              name="edit-city"
+              label="City"
+              value={addressDraft.city}
+              onChange={(event) => setAddressDraft((current) => ({ ...current, city: event.target.value }))}
+              required
+            />
+            <div className="grid-2">
+              <TextField
+                name="edit-state"
+                label="State"
+                maxLength={2}
+                value={addressDraft.state}
+                onChange={(event) => setAddressDraft((current) => ({ ...current, state: event.target.value.toUpperCase() }))}
+                required
+              />
+              <TextField
+                name="edit-zip"
+                label="ZIP"
+                inputMode="numeric"
+                value={addressDraft.zip}
+                onChange={(event) => setAddressDraft((current) => ({ ...current, zip: event.target.value }))}
+                required
+              />
+            </div>
+            <Button type="submit" disabled={busy}>
+              {busy ? "Saving" : "Save address"}
+            </Button>
+          </form>
         </Modal>
       ) : null}
       {modal === "delete" ? (

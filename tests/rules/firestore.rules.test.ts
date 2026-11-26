@@ -328,6 +328,32 @@ describe("locations", () => {
   });
 });
 
+describe("address edits", () => {
+  const fixed = {
+    address: "101 Demo Harbor Dr",
+    city: "Miami",
+    state: "FL",
+    zip: "33139",
+    normalizedAddress: normalizeAddress("101 Demo Harbor Dr", "Miami", "FL", "33139"),
+  };
+
+  it("denies a franchisee address edit and allows an admin", async () => {
+    await seedLocation("typo", baseLocation({ ...claimPatch(alex.uid, alex.name), claimedAt: daysAgo(2), lastActivityAt: daysAgo(2) }));
+    await assertFails(updateDoc(doc(dbFor(alex.uid), "locations", "typo"), fixed));
+    await assertSucceeds(updateDoc(doc(dbFor(avery.uid), "locations", "typo"), fixed));
+  });
+
+  it("denies an address edit that touches other fields or breaks the shape", async () => {
+    await seedLocation("typo2", baseLocation());
+    const admin = doc(dbFor(avery.uid), "locations", "typo2");
+    await assertFails(updateDoc(admin, { ...fixed, rent: 1 }));
+    await assertFails(updateDoc(admin, { ...fixed, lastActivityAt: serverTimestamp() }));
+    await assertFails(updateDoc(admin, { ...fixed, zip: "3313" }));
+    await assertFails(updateDoc(admin, { ...fixed, state: "fl" }));
+    await assertFails(updateDoc(admin, { ...fixed, address: " " }));
+  });
+});
+
 describe("notes, history, and rejections", () => {
   const rejection = {
     address: "123 Fake Palm Ave",
