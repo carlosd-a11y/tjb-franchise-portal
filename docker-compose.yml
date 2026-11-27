@@ -16,6 +16,12 @@ services:
     restart: unless-stopped
     user: "1000:1000"
     env_file: .env
+    # A ceiling, so this can never crowd the other service on the box even if
+    # something here misbehaves. A Flask app with eight threads and a SQLite
+    # file does not come close: it idles around 100 MB. The VPS has 2 cores and
+    # 8 GB, of which roughly 2.2 GB was in use before this arrived.
+    mem_limit: 1g
+    cpus: 1.0
     environment:
       TZ: America/New_York
       PORTAL_DB: /data/portal.db

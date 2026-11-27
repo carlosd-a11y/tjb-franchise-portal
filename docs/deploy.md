@@ -49,9 +49,17 @@ Its own container, its own database file, port 5005 (platia is on 5004), its own
 Traefik router name, and its own Firebase project. No port is published, so it
 adds nothing to the firewall. Traefik and the kernel are the only things shared.
 
-The build is the one moment it competes for the box: `npm ci` and the Vite build
-will use both cores for a few minutes. platia will feel slower while that runs.
-It will not stop.
+Once running it is capped at 1 GB of memory and one of the two cores, so it
+cannot crowd platia even if something here goes wrong. It idles far below that.
+
+The build is the one moment it competes for the box, and the cap does not apply
+to it: `npm ci` and the Vite build will use both cores for a few minutes. platia
+will feel slower while that runs. It will not stop. To avoid even that, build
+when nobody is using platia, or run the build on its own first:
+
+```bash
+cd /opt/portal && docker compose build && docker compose up -d
+```
 
 The real risk in this runbook is step 6, the DNS record, and it is not on the
 VPS at all. Read "The company website" above before doing it.
