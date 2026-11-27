@@ -4,6 +4,14 @@ Read this and `README.md` before changing anything. More than one agent works in
 
 ## Rules
 
+- **Never affect the company website.** `tropicaljuicebar.com` and `www` are the
+  live WordPress site on Hostinger shared hosting at `82.25.87.9`, and the
+  `MX` records are the company's Google Workspace email. Nothing in this project
+  touches any of them. The portal runs on a different machine entirely. The one
+  record this project changes is the `A` record whose host is `franchise`.
+  **Note that `franchise` currently points at the same address as the website**,
+  so in a DNS list the two rows look alike: match on the host name, never on the
+  address. Do not delete anything in Hostinger shared hosting.
 - Run `git fetch` and check open pull requests and branches first.
 - Work on your own branch and open a pull request. Do not push to `main` or to another agent's branch.
 - This repository is public. Never commit secrets, service account files, `.env.production`, real franchisee names or emails, real site data, or a personal commit email.
