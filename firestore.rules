@@ -38,6 +38,8 @@ rules_version = '2';
 //   - lastActivityAt, createdAt: timestamps
 //   - createdBy: string (immutable)
 //   - passReason: null, or a 3-500 char string. Required when passing.
+// Admins may correct address, city, state, zip, and normalizedAddress in
+// place, except on a rejected row. That edit cannot touch any other field.
 // Passing sets status back to pool. It is not left in a 'passed' status.
 // A claim is allowed when status is pool, or when an active claim's
 // lastActivityAt is strictly older than 30 days.
@@ -337,6 +339,27 @@ service cloud.firestore {
               && resource.data.status in ['pool', 'claimed', 'researching', 'touring', 'submitted']));
     }
 
+    // Admin fix for an address typo. Only the address fields and the dedupe
+    // key change; status, claim, and the 30-day clock stay as they were.
+    // A rejected row is frozen: its rejections record copied the old address,
+    // so editing here would move the "rejected before" warning off it.
+    function isAddressEdit() {
+      let data = request.resource.data;
+      return isAdmin()
+        && resource.data.status != 'rejected'
+        && nonEmpty(data.address, 200)
+        && nonEmpty(data.city, 80)
+        && data.state is string
+        && data.state.matches('^[A-Z]{2}$')
+        && data.zip is string
+        && data.zip.matches('^[0-9]{5}$')
+        && data.normalizedAddress is string
+        && data.normalizedAddress.size() >= 1
+        && data.normalizedAddress.size() <= 300
+        && data.normalizedAddress.matches('^[a-z0-9| -]+$')
+        && onlyChanged(['address', 'city', 'state', 'zip', 'normalizedAddress']);
+    }
+
     function isActivityBump() {
       return (isOwner() || isAdmin())
         && resource.data.status in ['claimed', 'researching', 'touring', 'submitted']
@@ -422,6 +445,7 @@ service cloud.firestore {
       allow update: if isAdvance();
       allow update: if isPass();
       allow update: if isAdminClose();
+      allow update: if isAddressEdit();
       allow delete: if isAdmin();
 
       match /notes/{noteId} {

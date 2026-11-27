@@ -60,6 +60,14 @@ export async function createLocation(
   return (await live()).createLocation(profile, fields);
 }
 
+export async function updateLocationAddress(
+  id: string,
+  fields: Parameters<LiveApi["updateLocationAddress"]>[1],
+): Promise<void> {
+  if (isDemo) return getDemoDb().updateAddress(id, fields);
+  return (await live()).updateLocationAddress(id, fields);
+}
+
 export async function addNote(locationId: string, profile: UserProfile, text: string): Promise<void> {
   if (isDemo) return getDemoDb().addNote(locationId, profile, text);
   return (await live()).addNote(locationId, profile, text);

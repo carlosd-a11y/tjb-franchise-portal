@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -16,7 +17,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebaseLive";
-import { LIMITS, LOCATION_LIST_LIMIT, NEXT_STATUS } from "./model";
+import { LIMITS, LOCATION_LIST_LIMIT, NEXT_STATUS, REJECTED_ADDRESS_LOCKED } from "./model";
 import { normalizeAddress } from "./normalize";
 import { matchRejectionHits } from "./rejectionHits";
 import { isClaimable, toDate } from "./time";
@@ -189,6 +190,29 @@ export async function createLocation(
     passReason: null,
   });
   return ref.id;
+}
+
+export type AddressFields = Pick<LocationDoc, "address" | "city" | "state" | "zip" | "normalizedAddress">;
+
+export async function updateLocationAddress(id: string, fields: AddressFields): Promise<void> {
+  const current = await getDoc(doc(db, "locations", id));
+  if (!current.exists()) throw new Error("Location not found.");
+  if ((current.data() as LocationDoc).status === "rejected") throw new Error(REJECTED_ADDRESS_LOCKED);
+  const existing = await getDocs(
+    query(
+      collection(db, "locations"),
+      where("normalizedAddress", "==", fields.normalizedAddress),
+      limit(2),
+    ),
+  );
+  if (existing.docs.some((item) => item.id !== id)) throw new Error("That address is already in the list.");
+  await updateDoc(doc(db, "locations", id), {
+    address: fields.address,
+    city: fields.city,
+    state: fields.state,
+    zip: fields.zip,
+    normalizedAddress: fields.normalizedAddress,
+  });
 }
 
 export async function addNote(locationId: string, profile: UserProfile, text: string): Promise<void> {

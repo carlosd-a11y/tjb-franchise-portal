@@ -68,6 +68,24 @@ export function parseDraftLocation(draft: DraftLocation): { value: ParsedLocatio
   return { value: { address, city, state, zip, normalizedAddress, sqft, rent, lat, lng } };
 }
 
+export type DraftAddress = Pick<DraftLocation, "address" | "city" | "state" | "zip">;
+
+export type ParsedAddress = Pick<ParsedLocation, "address" | "city" | "state" | "zip" | "normalizedAddress">;
+
+export function parseDraftAddress(draft: DraftAddress): { value: ParsedAddress } | { error: string } {
+  const address = clean(draft.address, LIMITS.address);
+  const city = clean(draft.city, LIMITS.city);
+  const state = draft.state.trim().toUpperCase();
+  const zip = zip5(draft.zip);
+  if (!address) return { error: "Enter an address." };
+  if (!city) return { error: "Enter a city." };
+  if (!/^[A-Z]{2}$/.test(state)) return { error: "Use a 2-letter state." };
+  if (!/^\d{5}$/.test(zip)) return { error: "Use a 5-digit ZIP." };
+  const normalizedAddress = normalizeAddress(address, city, state, zip);
+  if (!normalizedAddressOk(normalizedAddress)) return { error: "That address cannot be saved." };
+  return { value: { address, city, state, zip, normalizedAddress } };
+}
+
 export function parsePassReason(value: string): string | null {
   const trimmed = value.trim().replace(/\s+/g, " ");
   if (trimmed.length < 3 || trimmed.length > LIMITS.reason) return null;
