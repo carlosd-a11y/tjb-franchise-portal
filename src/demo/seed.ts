@@ -71,6 +71,17 @@ export type RawUser = {
   active: boolean;
 };
 
+export type RawScout = {
+  id: string;
+  name: string;
+  label: string;
+  active: boolean;
+  createdBy: string;
+  createdAt: string;
+  lastSeenAt: string | null;
+  submitted: number;
+};
+
 export type RawDb = {
   users: RawUser[];
   invites: RawInvite[];
@@ -78,6 +89,7 @@ export type RawDb = {
   notes: Record<string, RawNote[]>;
   history: Record<string, RawHistory[]>;
   rejections: RawRejection[];
+  scouts: RawScout[];
 };
 
 function ago(days: number, hours = 0): string {
@@ -382,6 +394,28 @@ export function freshDemoDb(): RawDb {
         rejectedAt: "2025-02-02T00:00:00.000Z",
         reasonCode: "parking",
         reasonText: "FAKE seeded row. No customer parking.",
+      },
+    ],
+    scouts: [
+      {
+        id: "scout-muse",
+        name: "muse",
+        label: "Muse",
+        active: true,
+        createdBy: "uid-admin",
+        createdAt: ago(30),
+        lastSeenAt: ago(0, 1),
+        submitted: 1,
+      },
+      {
+        id: "scout-grokbot",
+        name: "grokbot",
+        label: "Grokbot",
+        active: false,
+        createdBy: "uid-admin",
+        createdAt: ago(14),
+        lastSeenAt: ago(9),
+        submitted: 0,
       },
     ],
   };

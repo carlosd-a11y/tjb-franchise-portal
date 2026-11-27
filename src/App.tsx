@@ -11,6 +11,7 @@ import { LocationDetailPage } from "./pages/LocationDetailPage";
 import { LocationsPage } from "./pages/LocationsPage";
 import { NoAccessPage } from "./pages/NoAccessPage";
 import { RejectionsPage } from "./pages/RejectionsPage";
+import { ScoutsPage } from "./pages/ScoutsPage";
 
 function Gate() {
   const { state } = useAuth();
@@ -45,6 +46,14 @@ function AdminGate() {
     return <Navigate to="/locations" replace />;
   }
   return <AdminUsersPage />;
+}
+
+function ScoutsRoute() {
+  const { state } = useAuth();
+  if (state.status !== "ready" || state.profile.role !== "admin") {
+    return <Navigate to="/locations" replace />;
+  }
+  return <ScoutsPage />;
 }
 
 function ImportRoute() {
@@ -102,6 +111,7 @@ export function App() {
           <Route path="/locations/:id" element={<LocationDetailPage />} />
           <Route path="/rejections" element={<RejectionsPage />} />
           <Route path="/admin/users" element={<AdminGate />} />
+          <Route path="/admin/scouts" element={<ScoutsRoute />} />
           <Route path="/admin/import" element={<ImportRoute />} />
           <Route path="*" element={<Navigate to="/locations" replace />} />
         </Route>

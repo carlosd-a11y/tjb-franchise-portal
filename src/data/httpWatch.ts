@@ -3,9 +3,18 @@ import {
   fetchLocationPage,
   fetchLocations,
   fetchRejections,
+  fetchScouts,
   fetchUsers,
 } from "../lib/httpApi";
-import type { HistoryRecord, InviteRecord, LocationRecord, NoteRecord, RejectionRecord, UserProfile } from "../types";
+import type {
+  HistoryRecord,
+  InviteRecord,
+  LocationRecord,
+  NoteRecord,
+  RejectionRecord,
+  ScoutRecord,
+  UserProfile,
+} from "../types";
 
 /**
  * Firestore pushed changes. This asks instead.
@@ -92,4 +101,11 @@ export function watchInvitesLive(
   onError: (error: unknown) => void,
 ): () => void {
   return poll(fetchInvites, onData, onError);
+}
+
+export function watchScoutsLive(
+  onData: (rows: ScoutRecord[]) => void,
+  onError: (error: unknown) => void,
+): () => void {
+  return poll(fetchScouts, onData, onError);
 }

@@ -7,7 +7,6 @@ here and be active before any data is read or written: a valid Firebase login
 on its own grants nothing.
 """
 
-import os
 from functools import wraps
 
 from flask import current_app, g, request
@@ -74,25 +73,3 @@ def admin_only(view):
 
 def is_admin() -> bool:
     return profile()["role"] == "admin"
-
-
-def intake_source() -> str:
-    """
-    Maps a bot's bearer key to its short source name. Keys live only in the
-    environment, never in the database and never in this repository.
-
-    PORTAL_INTAKE_KEYS is "muse:<key>,scout:<key>".
-    """
-    presented = bearer()
-    for pair in os.environ.get("PORTAL_INTAKE_KEYS", "").split(","):
-        name, _, key = pair.partition(":")
-        name, key = name.strip(), key.strip()
-        if name and key and len(key) >= 16 and _constant_equal(key, presented):
-            return name
-    raise ApiError("Unauthorized", 401)
-
-
-def _constant_equal(left: str, right: str) -> bool:
-    import hmac
-
-    return hmac.compare_digest(left, right)
