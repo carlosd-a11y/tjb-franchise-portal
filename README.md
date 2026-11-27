@@ -216,7 +216,7 @@ address,city,state,zip,rejectedBy,rejectedAt,reasonCode,reasonText
 - An owner can append a history row for the current status without changing the location. Status changes themselves are enforced on the location document.
 - Rules do not require MFA, for the emulator reason above.
 - Invites do not send email and do not create Auth users.
-- Admins cannot edit an address in place. Correct a typo by deleting the row (admin) and adding it again, or extend the rules later with a small admin-edit allow list.
+- Admins can fix an address in place (Edit address), except on a rejected location: its rejection record keeps the old address, so the warning would stop matching. The edit does not change `lat`/`lng` and does not write a history row.
 - No App Check, no audit export, no map clustering.
 - Client list reads up to 300 locations and filters in the browser. Add a composite index if that ever gets slow.
 - The intake service account bypasses security rules. The PHP allow-list is the control. Rotate the key if it leaks.

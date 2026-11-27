@@ -39,7 +39,7 @@ rules_version = '2';
 //   - createdBy: string (immutable)
 //   - passReason: null, or a 3-500 char string. Required when passing.
 // Admins may correct address, city, state, zip, and normalizedAddress in
-// place. That edit cannot touch any other field.
+// place, except on a rejected row. That edit cannot touch any other field.
 // Passing sets status back to pool. It is not left in a 'passed' status.
 // A claim is allowed when status is pool, or when an active claim's
 // lastActivityAt is strictly older than 30 days.
@@ -341,9 +341,12 @@ service cloud.firestore {
 
     // Admin fix for an address typo. Only the address fields and the dedupe
     // key change; status, claim, and the 30-day clock stay as they were.
+    // A rejected row is frozen: its rejections record copied the old address,
+    // so editing here would move the "rejected before" warning off it.
     function isAddressEdit() {
       let data = request.resource.data;
       return isAdmin()
+        && resource.data.status != 'rejected'
         && nonEmpty(data.address, 200)
         && nonEmpty(data.city, 80)
         && data.state is string

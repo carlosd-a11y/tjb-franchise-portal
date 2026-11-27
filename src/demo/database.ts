@@ -1,4 +1,4 @@
-import { LIMITS, NEXT_STATUS } from "../lib/model";
+import { LIMITS, NEXT_STATUS, REJECTED_ADDRESS_LOCKED } from "../lib/model";
 import { normalizeAddress } from "../lib/normalize";
 import { matchRejectionHits } from "../lib/rejectionHits";
 import { isClaimable, toDate } from "../lib/time";
@@ -263,6 +263,7 @@ export function createDemoDatabase(storage: DemoStorage): DemoDatabase {
     },
     updateAddress(id, fields) {
       const row = loc(id);
+      if (row.status === "rejected") throw new Error(REJECTED_ADDRESS_LOCKED);
       if (raw.locations.some((item) => item.id !== id && item.normalizedAddress === fields.normalizedAddress)) {
         throw new Error("That address is already in the list.");
       }

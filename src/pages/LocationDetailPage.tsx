@@ -166,12 +166,13 @@ export function LocationDetailPage() {
                 Reject
               </Button>
             ) : null}
-            {profile.role === "admin" ? (
+            {profile.role === "admin" && location.status !== "rejected" ? (
               <Button
                 type="button"
                 variant="secondary"
                 disabled={busy}
                 onClick={() => {
+                  setError("");
                   setAddressDraft({
                     address: location.address,
                     city: location.city,

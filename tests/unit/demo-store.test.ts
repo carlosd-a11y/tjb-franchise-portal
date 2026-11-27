@@ -88,6 +88,23 @@ describe("demo address edit", () => {
       }),
     ).toThrow(/already in the list/);
   });
+
+  it("refuses to edit a rejected location's address", () => {
+    const db = createDemoDatabase(memory());
+    const admin = db.users().find((user) => user.role === "admin")!;
+    const before = db.location("loc-bay")!;
+    db.reject("loc-bay", admin, "rent", "FAKE too expensive");
+    expect(() =>
+      db.updateAddress("loc-bay", {
+        address: "202 Sample Bay Road",
+        city: "Tampa",
+        state: "FL",
+        zip: "33603",
+        normalizedAddress: normalizeAddress("202 Sample Bay Road", "Tampa", "FL", "33603"),
+      }),
+    ).toThrow(/can't be changed/);
+    expect(db.location("loc-bay")!.normalizedAddress).toBe(before.normalizedAddress);
+  });
 });
 
 describe("rejection hits", () => {
