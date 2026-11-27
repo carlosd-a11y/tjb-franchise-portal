@@ -118,7 +118,7 @@ def list_locations():
     rows = get_db().execute(
         "SELECT * FROM locations ORDER BY last_activity_at DESC LIMIT ?", (LOCATION_LIST_LIMIT,)
     ).fetchall()
-    return jsonify({"locations": [serialize.location(row) for row in rows]})
+    return jsonify({"locations": [serialize.location(row, profile()) for row in rows]})
 
 
 @bp.get("/api/locations/<location_id>")
@@ -134,7 +134,7 @@ def get_location(location_id: str):
     ).fetchall()
     return jsonify(
         {
-            "location": serialize.location(row),
+            "location": serialize.location(row, profile()),
             "notes": [serialize.note(item) for item in notes],
             "history": [serialize.history(item) for item in history],
         }
@@ -168,12 +168,13 @@ def create_location():
         conn.execute(
             "INSERT INTO locations (id, address, city, state, zip, normalized_address, lat, lng, sqft,"
             " rent, source, status, claimed_by, claimed_by_name, claimed_at, last_activity_at,"
-            " created_by, created_at, pass_reason)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', 'pool', NULL, NULL, NULL, ?, ?, ?, NULL)",
+            " created_by, created_at, pass_reason, listing_url, contact_name, contact_phone)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', 'pool', NULL, NULL, NULL, ?, ?, ?, NULL, ?, ?, ?)",
             (
                 location_id, fields["address"], fields["city"], fields["state"], fields["zip"],
                 fields["normalizedAddress"], fields["lat"], fields["lng"], fields["sqft"],
                 fields["rent"], stamp, me["uid"], stamp,
+                fields["listingUrl"], fields["contactName"], fields["contactPhone"],
             ),
         )
     return jsonify({"id": location_id}), 201

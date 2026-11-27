@@ -16,6 +16,9 @@ const empty: DraftLocation = {
   rent: "",
   lat: "",
   lng: "",
+  listingUrl: "",
+  contactName: "",
+  contactPhone: "",
 };
 
 export function AddLocationPage() {
@@ -115,6 +118,12 @@ export function AddLocationPage() {
           <TextField name="lat" label="Latitude" hint="Optional." value={draft.lat} onChange={(event) => set("lat", event.target.value)} />
           <TextField name="lng" label="Longitude" hint="Optional." value={draft.lng} onChange={(event) => set("lng", event.target.value)} />
         </div>
+        <TextField name="listingUrl" label="Listing link (optional)" type="url" value={draft.listingUrl} onChange={(event) => set("listingUrl", event.target.value)} />
+        <div className="grid-2">
+          <TextField name="contactName" label="Contact name (optional)" value={draft.contactName} onChange={(event) => set("contactName", event.target.value)} />
+          <TextField name="contactPhone" label="Contact phone (optional)" type="tel" value={draft.contactPhone} onChange={(event) => set("contactPhone", event.target.value)} />
+        </div>
+        <p className="hint">Contacts are shown to admins and to whoever claims the site.</p>
         <Button type="submit" disabled={busy}>
           {busy ? "Saving" : "Save to pool"}
         </Button>

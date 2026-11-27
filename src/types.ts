@@ -50,6 +50,11 @@ export type LocationDoc = {
   createdBy: string;
   createdAt: Timestamp;
   passReason: string | null;
+  listingUrl?: string | null;
+  contactName?: string | null;
+  contactPhone?: string | null;
+  /** A contact exists but this viewer may not see it. */
+  contactHidden?: boolean;
 };
 
 export type LocationRecord = LocationDoc & { id: string };
