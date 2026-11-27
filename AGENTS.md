@@ -10,12 +10,15 @@ Read this and `README.md` before changing anything. More than one agent works in
 - Do not deploy, create a Firebase project, or change DNS or hosting without the owner's OK.
 - Update the status below when your work changes it.
 
-## Status as of 2026-11-26
+## Status as of 2026-11-27
 
-- `main`: phase 1 portal (#1). `npm test` 8/8, `npm run build` and `npm run build:demo` pass.
-- Rules tests and PHP tests were not run in the latest check (that machine had no Java or PHP).
-- #2 (admin address edit): open. On its branch, `npm test` 9/9 and `npm run build` pass. Rules tests not re-run.
-- Live site: not set up. No Firebase project for the portal yet. `franchise.tropicaljuicebar.com` has a DNS record but no site or certificate behind it.
+- `main`: phase 1 portal (#1) plus these notes (#3). `npm test` 8/8, `npm run build` and `npm run build:demo` pass.
+- Rules tests and PHP tests have not been run (no Java or PHP on the machine used).
+- #2 (admin address edit): open, not merged. #4 targets #2's branch and fixes a problem in it (see item 1).
+- **Hosting is live.** `https://franchise.tropicaljuicebar.com` serves `/public_html/franchise` on Hostinger, with a certificate valid to 2027-02-25. Nothing is uploaded there yet, so it serves an empty directory.
+- **Firebase project `tjb-franchise-portal` exists** (Spark, no billing, Analytics and Gemini off, parent org `tropicaljuicebar.com`). Email/Password sign-in is **on**.
+- **Firestore is not created yet.** The console's location picker would not load its options, and the Cloud console asks for the owner's passkey. Someone with console access has to create the `(default)` database, Standard edition, in a US region, before rules or indexes can be deployed.
+- Still to do after that: TOTP/Identity Platform upgrade, register the web app and fill `.env.production`, deploy rules and indexes, bootstrap the first admin, upload `dist/` and `api/`.
 
 ## Open items, in order
 
