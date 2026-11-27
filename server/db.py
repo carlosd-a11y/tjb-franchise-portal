@@ -23,7 +23,16 @@ def db_path() -> Path:
 
 
 def open_db(path: Path | None = None) -> sqlite3.Connection:
-    conn = sqlite3.connect(path or db_path(), timeout=30, isolation_level=None)
+    target = Path(path or db_path())
+    try:
+        conn = sqlite3.connect(target, timeout=30, isolation_level=None)
+    except sqlite3.OperationalError as error:
+        folder = target.parent
+        raise sqlite3.OperationalError(
+            f"Cannot open the database at {target}: {error}. "
+            f"The usual cause is that {folder} does not belong to the user this "
+            f"process runs as. On the VPS: chown -R 1000:1000 {folder}"
+        ) from error
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA busy_timeout = 30000")

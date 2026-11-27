@@ -64,14 +64,37 @@ cd /opt/portal && docker compose build && docker compose up -d
 The real risk in this runbook is step 6, the DNS record, and it is not on the
 VPS at all. Read "The company website" above before doing it.
 
+## The short way
+
+In the VPS web console:
+
+```bash
+git clone https://github.com/carlosd-a11y/tjb-franchise-portal.git /opt/portal
+cd /opt/portal && ./deploy.sh
+```
+
+It asks for the Firebase config once — paste the whole block from the console,
+press Ctrl-D — then builds, starts, and checks itself. Run it again any time to
+update; it keeps the config and the database.
+
+It touches nothing outside `/opt/portal`, and it does not change DNS. That step
+is left to a person on purpose.
+
+The rest of this page is the same thing by hand, for when something needs
+looking at.
+
 ## 1. Get the code onto the VPS
 
 ```bash
 ssh <the VPS that runs platia>
 sudo mkdir -p /opt/portal && sudo chown "$USER" /opt/portal
 git clone https://github.com/carlosd-a11y/tjb-franchise-portal.git /opt/portal
-cd /opt/portal && mkdir -p data
+cd /opt/portal && mkdir -p data && chown -R 1000:1000 data
 ```
+
+That `chown` matters. The container runs as user 1000, so a data directory owned
+by root means SQLite cannot create the file and the container restarts forever
+on "unable to open database file". `deploy.sh` does it for you.
 
 ## 2. The browser config
 
@@ -192,12 +215,12 @@ Admin → Users, pasting the UID that Firebase shows for them.
 ## 8. Nightly backup
 
 ```bash
-sudo tee /etc/cron.d/portal-backup <<'CRON'
-0 3 * * * root docker compose -f /opt/portal/docker-compose.yml exec -T portal /app/server/backup.sh
-CRON
+cp /opt/portal/server/backup.sh /usr/local/bin/portal-backup.sh
+echo '0 3 * * * root docker exec -i franchise-portal sh < /usr/local/bin/portal-backup.sh >> /var/log/portal-backup.log 2>&1' > /etc/cron.d/portal-backup
 ```
 
-The database is one file in `/opt/portal/data`. Copying it is the whole backup.
+Copies land in `/opt/portal/data/backups`, kept for 14 days. They are on the same
+disk as the database, so they cover mistakes, not losing the server.
 
 ## Updating later
 
