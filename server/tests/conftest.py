@@ -149,3 +149,19 @@ def days_ago(count: int) -> str:
 
 def auth(token):
     return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def scout(app):
+    """A registered scouting platform and the key it posts with."""
+    from db import get_db, new_id, now
+    from scouts import hash_key, make_key
+
+    key = make_key()
+    with app.app_context():
+        get_db().execute(
+            "INSERT INTO scouts (id, name, label, key_hash, active, created_by, created_at, submitted)"
+            " VALUES (?, 'muse', 'Muse', ?, 1, 'avery', ?, 0)",
+            (new_id(), hash_key(key), now()),
+        )
+    return key

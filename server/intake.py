@@ -1,9 +1,11 @@
 """
 Bot intake.
 
-Replaces api/intake.php. Same contract: a bearer key per bot, 409 on an address
-already listed, warnings when the address or ZIP was rejected before, and a
-rate limit per key and per address.
+Replaces api/intake.php. Same contract: a bearer key per platform, 409 on an
+address already listed, warnings when the address or ZIP was rejected before,
+and a rate limit per key and per address.
+
+Which platforms may post is managed in scouts.py, from Admin -> Scouts.
 
 The old version reached Firestore with a service account that bypassed the
 security rules entirely, with a PHP allow-list as the only control. This runs
@@ -16,10 +18,11 @@ import time
 from flask import Blueprint, jsonify, request
 
 import validators
-from auth import intake_source
+from auth import bearer
 from db import get_db, new_id, now
 from errors import ApiError
 from locations import rejection_hits
+from scouts import authenticate, note_seen
 
 bp = Blueprint("intake", __name__)
 
@@ -50,7 +53,10 @@ def intake():
     if not allow(conn, f"ip:{client_ip}", max(PER_KEY_PER_HOUR * 4, 30)):
         raise ApiError("Rate limit exceeded", 429)
 
-    source = intake_source()
+    scout = authenticate(conn, bearer())
+    if scout is None:
+        raise ApiError("Unauthorized", 401)
+    source = scout["name"]
     if not allow(conn, f"key:{source}", PER_KEY_PER_HOUR):
         raise ApiError("Rate limit exceeded", 429)
 
@@ -74,7 +80,8 @@ def intake():
             "SELECT id FROM locations WHERE normalized_address = ?", (fields["normalizedAddress"],)
         ).fetchone()
         if existing:
-            conn.execute("ROLLBACK")
+            note_seen(conn, scout["id"], created=False)
+            conn.execute("COMMIT")
             return jsonify(
                 {"ok": False, "error": "duplicate", "id": existing["id"], "rejectionWarnings": warnings}
             ), 409
@@ -92,6 +99,7 @@ def intake():
                 fields["rent"], f"bot:{source}", stamp, f"bot:{source}", stamp,
             ),
         )
+        note_seen(conn, scout["id"], created=True)
     except Exception:
         conn.execute("ROLLBACK")
         raise

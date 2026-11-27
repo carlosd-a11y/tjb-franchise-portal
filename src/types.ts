@@ -99,6 +99,18 @@ export type InviteDoc = {
 
 export type InviteRecord = InviteDoc & { id: string };
 
+/** A scouting platform allowed to push finds in. The key is never held here. */
+export type ScoutRecord = {
+  id: string;
+  name: string;
+  label: string;
+  active: boolean;
+  createdBy: string;
+  createdAt: Timestamp;
+  lastSeenAt: Timestamp | null;
+  submitted: number;
+};
+
 export type RejectionHit = {
   id: string;
   reasonCode: ReasonCode;

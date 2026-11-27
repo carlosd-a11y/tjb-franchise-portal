@@ -28,6 +28,11 @@ export function Layout() {
               </NavLink>
             ) : null}
             {admin ? (
+              <NavLink to="/admin/scouts" className={({ isActive }) => `nav-link${isActive ? " on" : ""}`}>
+                Scouts
+              </NavLink>
+            ) : null}
+            {admin ? (
               <NavLink to="/admin/import" className={({ isActive }) => `nav-link${isActive ? " on" : ""}`}>
                 Import
               </NavLink>
