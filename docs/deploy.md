@@ -16,6 +16,25 @@ shows once, and a DNS record.
 - The subdomain resolves and has a certificate, but it still points at Hostinger
   shared hosting, which serves a "Coming soon" page.
 
+## Before you start: take a snapshot
+
+The VPS already runs platia and Hermes, and its backups are **weekly**, so a
+restore point could be six days old. hPanel → VPS → Snapshots → take one. It is
+one click and it is the only thing here that is hard to undo.
+
+## What this cannot disturb
+
+Its own container, its own database file, port 5005 (platia is on 5004), its own
+Traefik router name, and its own Firebase project. No port is published, so it
+adds nothing to the firewall. Traefik and the kernel are the only things shared.
+
+The build is the one moment it competes for the box: `npm ci` and the Vite build
+will use both cores for a few minutes. platia will feel slower while that runs.
+It will not stop.
+
+The real risk in this runbook is step 6, the DNS record, and it is not on the
+VPS at all.
+
 ## 1. Get the code onto the VPS
 
 ```bash
@@ -91,8 +110,13 @@ curl -s -H 'Host: franchise.tropicaljuicebar.com' localhost/healthz
 
 ## 6. Point the domain at it
 
-At GoDaddy, change the `franchise` A record from the shared-hosting address to
-the VPS address. Then wait for it to spread, and watch Traefik get a certificate:
+At GoDaddy, change **only** the A record whose host is `franchise`, from the
+shared-hosting address to the VPS address `2.24.76.133`.
+
+Leave every other record alone. The `@` record is the main website and `platia`
+is the other service; editing either by mistake takes a live site down. If the
+list shows several records, match on the host name `franchise`, not on the
+address. Then wait for it to spread, and watch Traefik get a certificate:
 
 ```bash
 dig +short franchise.tropicaljuicebar.com

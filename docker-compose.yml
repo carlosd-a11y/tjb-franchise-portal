@@ -4,9 +4,15 @@
 #
 # The database is a file in ./data on the host, so it survives a rebuild and a
 # backup is one copy. See docs/adr-001-backend-on-the-vps.md.
+#
+# Nothing here is shared with the other service on this box. Its own container,
+# its own database file, its own port (5005; platia is on 5004) and its own
+# Traefik router name. The only thing in common is Traefik itself and the
+# kernel, and no port is published, so this adds nothing new to the firewall.
 services:
   portal:
     build: .
+    container_name: franchise-portal
     restart: unless-stopped
     user: "1000:1000"
     env_file: .env
@@ -25,7 +31,7 @@ services:
       retries: 3
     labels:
       - traefik.enable=true
-      - traefik.http.routers.portal.rule=Host(`franchise.tropicaljuicebar.com`)
-      - traefik.http.routers.portal.entrypoints=websecure
-      - traefik.http.routers.portal.tls.certresolver=letsencrypt
-      - traefik.http.services.portal.loadbalancer.server.port=5005
+      - traefik.http.routers.franchiseportal.rule=Host(`franchise.tropicaljuicebar.com`)
+      - traefik.http.routers.franchiseportal.entrypoints=websecure
+      - traefik.http.routers.franchiseportal.tls.certresolver=letsencrypt
+      - traefik.http.services.franchiseportal.loadbalancer.server.port=5005
