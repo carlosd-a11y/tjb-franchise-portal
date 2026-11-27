@@ -9,6 +9,7 @@ import type {
   ReasonCode,
   RejectionHit,
   RejectionRecord,
+  ScoutRecord,
   UserProfile,
 } from "../types";
 
@@ -128,6 +129,32 @@ export function fetchInvites(): Promise<InviteRecord[]> {
   return shared("invites", () =>
     send<{ invites: Record<string, unknown>[] }>("/api/invites").then((body) => body.invites.map(invite)),
   );
+}
+
+const scout = (row: Record<string, unknown>) =>
+  withStamps<ScoutRecord>(row, ["createdAt", "lastSeenAt"]);
+
+export function fetchScouts(): Promise<ScoutRecord[]> {
+  return shared("scouts", () =>
+    send<{ scouts: Record<string, unknown>[] }>("/api/scouts").then((body) => body.scouts.map(scout)),
+  );
+}
+
+/** The key comes back once, here, and is never retrievable again. */
+export function createScout(name: string, label: string): Promise<string> {
+  return post<{ key: string }>("/api/scouts", { name, label }).then((body) => body.key);
+}
+
+export function rotateScoutKey(id: string): Promise<string> {
+  return post<{ key: string }>(`/api/scouts/${id}/rotate`).then((body) => body.key);
+}
+
+export async function updateScout(id: string, changes: { label?: string; active?: boolean }): Promise<void> {
+  await patch(`/api/scouts/${id}`, changes);
+}
+
+export async function deleteScout(id: string): Promise<void> {
+  await send(`/api/scouts/${id}`, { method: "DELETE" });
 }
 
 export function fetchProfile(): Promise<UserProfile> {

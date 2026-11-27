@@ -112,3 +112,35 @@ export async function saveInvite(
   if (isDemo) return getDemoDb().saveInvite(email, name, role, createdBy);
   return (await live()).saveInvite(email, name, role, createdBy);
 }
+
+/**
+ * Scouting platforms. These exist only on the portal server and in the demo,
+ * so they do not go through live() and its firebaseApi shape.
+ */
+async function scoutApi() {
+  if (!useServer) throw new Error("Scouts need the portal server.");
+  return import("./httpApi");
+}
+
+export async function createScout(name: string, label: string): Promise<string> {
+  if (isDemo) return getDemoDb().createScout(name, label);
+  return (await scoutApi()).createScout(name, label);
+}
+
+export async function rotateScoutKey(id: string): Promise<string> {
+  if (isDemo) return getDemoDb().rotateScoutKey(id);
+  return (await scoutApi()).rotateScoutKey(id);
+}
+
+export async function updateScout(
+  id: string,
+  changes: { label?: string; active?: boolean },
+): Promise<void> {
+  if (isDemo) return getDemoDb().updateScout(id, changes);
+  return (await scoutApi()).updateScout(id, changes);
+}
+
+export async function deleteScout(id: string): Promise<void> {
+  if (isDemo) return getDemoDb().deleteScout(id);
+  return (await scoutApi()).deleteScout(id);
+}

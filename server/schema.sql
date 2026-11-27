@@ -97,3 +97,18 @@ CREATE TABLE IF NOT EXISTS intake_hits (
   count        INTEGER NOT NULL,
   PRIMARY KEY (bucket, window_start)
 );
+
+-- A scouting platform allowed to push finds in: Muse, Grokbot, and whatever
+-- comes next. Admins add these from Admin -> Scouts. The key itself is never
+-- stored, only its hash, so a leak of this file cannot be replayed.
+CREATE TABLE IF NOT EXISTS scouts (
+  id           TEXT PRIMARY KEY,
+  name         TEXT NOT NULL UNIQUE,   -- slug; the row's source becomes "bot:<name>"
+  label        TEXT NOT NULL,
+  key_hash     TEXT NOT NULL UNIQUE,
+  active       INTEGER NOT NULL CHECK (active IN (0, 1)),
+  created_by   TEXT NOT NULL,
+  created_at   TEXT NOT NULL,
+  last_seen_at TEXT,
+  submitted    INTEGER NOT NULL DEFAULT 0
+);

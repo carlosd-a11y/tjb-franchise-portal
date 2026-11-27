@@ -1,6 +1,14 @@
 import { isDemo, useServer } from "../env";
 import { getDemoDb } from "../demo/database";
-import type { HistoryRecord, InviteRecord, LocationRecord, NoteRecord, RejectionRecord, UserProfile } from "../types";
+import type {
+  HistoryRecord,
+  InviteRecord,
+  LocationRecord,
+  NoteRecord,
+  RejectionRecord,
+  ScoutRecord,
+  UserProfile,
+} from "../types";
 
 function liveWatch(): Promise<typeof import("./firebaseWatch")> {
   return useServer ? import("./httpWatch") : import("./firebaseWatch");
@@ -145,6 +153,36 @@ export function watchInvites(
   void liveWatch().then((mod) => {
     if (cancelled) return;
     stop = mod.watchInvitesLive(onData, onError);
+  });
+  return () => {
+    cancelled = true;
+    stop();
+  };
+}
+
+/**
+ * Scouting platforms are held by the portal server. The Firestore build has no
+ * such collection, so it says so rather than showing an empty list.
+ */
+export function watchScouts(
+  onData: (rows: ScoutRecord[]) => void,
+  onError: (error: unknown) => void,
+): () => void {
+  if (isDemo) {
+    const db = getDemoDb();
+    const push = () => onData(db.scouts());
+    push();
+    return db.subscribe(push);
+  }
+  if (!useServer) {
+    onError(new Error("Scouts need the portal server."));
+    return () => {};
+  }
+  let stop = () => {};
+  let cancelled = false;
+  void import("./httpWatch").then((mod) => {
+    if (cancelled) return;
+    stop = mod.watchScoutsLive(onData, onError);
   });
   return () => {
     cancelled = true;

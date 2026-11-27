@@ -11,9 +11,10 @@ import type {
   NoteRecord,
   RejectionHit,
   RejectionRecord,
+  ScoutRecord,
   UserProfile,
 } from "../types";
-import { freshDemoDb, type RawDb, type RawHistory, type RawLocation, type RawNote } from "./seed";
+import { freshDemoDb, type RawDb, type RawHistory, type RawLocation, type RawNote, type RawScout } from "./seed";
 
 const DB_KEY = "tjb-demo-db-v1";
 export const DEMO_ROLE_KEY = "tjb-demo-role";
@@ -33,6 +34,11 @@ function nowIso(): string {
 
 function nid(): string {
   return Math.random().toString(36).slice(2, 12);
+}
+
+/** The demo has no server to issue a real key, so it shows a sample one. */
+function demoKey(): string {
+  return `demo-${Array.from({ length: 4 }, nid).join("")}`.slice(0, 44);
 }
 
 function viewLocation(row: RawLocation): LocationRecord {
@@ -72,6 +78,11 @@ export type DemoDatabase = {
   saveUser: (profile: UserProfile) => void;
   saveInvite: (email: string, name: string, role: UserProfile["role"], createdBy: string) => void;
   updateInviteStatus: (id: string, status: "pending" | "provisioned") => void;
+  scouts: () => ScoutRecord[];
+  createScout: (name: string, label: string) => string;
+  rotateScoutKey: (id: string) => string;
+  updateScout: (id: string, changes: { label?: string; active?: boolean }) => void;
+  deleteScout: (id: string) => void;
 };
 
 export function createDemoDatabase(storage: DemoStorage): DemoDatabase {
@@ -336,6 +347,54 @@ export function createDemoDatabase(storage: DemoStorage): DemoDatabase {
         createdAt: nowIso(),
         status: "pending",
       });
+      persist();
+    },
+    scouts() {
+      return (raw.scouts ?? [])
+        .map((row) => ({ ...row, createdAt: stamp(row.createdAt)!, lastSeenAt: stamp(row.lastSeenAt) }) as ScoutRecord)
+        .sort((a, b) => a.label.localeCompare(b.label));
+    },
+    createScout(name, label) {
+      const slug = name.trim().toLowerCase();
+      if (!/^[a-z0-9-]{1,24}$/.test(slug)) {
+        throw new Error("Use lowercase letters, numbers and dashes for the short name.");
+      }
+      if (!label.trim()) throw new Error("Give the scout a name.");
+      if (!raw.scouts) raw.scouts = [];
+      if (raw.scouts.some((row) => row.name === slug)) {
+        throw new Error("A scout with that short name already exists.");
+      }
+      const row: RawScout = {
+        id: nid(),
+        name: slug,
+        label: label.trim(),
+        active: true,
+        createdBy: "uid-admin",
+        createdAt: nowIso(),
+        lastSeenAt: null,
+        submitted: 0,
+      };
+      raw.scouts.push(row);
+      persist();
+      return demoKey();
+    },
+    rotateScoutKey(id) {
+      if (!(raw.scouts ?? []).some((row) => row.id === id)) throw new Error("Scout not found.");
+      persist();
+      return demoKey();
+    },
+    updateScout(id, changes) {
+      const row = (raw.scouts ?? []).find((item) => item.id === id);
+      if (!row) throw new Error("Scout not found.");
+      if (changes.label !== undefined) {
+        if (!changes.label.trim()) throw new Error("Give the scout a name.");
+        row.label = changes.label.trim();
+      }
+      if (changes.active !== undefined) row.active = changes.active;
+      persist();
+    },
+    deleteScout(id) {
+      raw.scouts = (raw.scouts ?? []).filter((row) => row.id !== id);
       persist();
     },
     updateInviteStatus(id, status) {

@@ -87,3 +87,17 @@ def invite(row) -> dict:
         "createdAt": row["created_at"],
         "status": row["status"],
     }
+
+
+def scout(row) -> dict:
+    """The key is deliberately absent. It is shown once, when it is made."""
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "label": row["label"],
+        "active": bool(row["active"]),
+        "createdBy": row["created_by"],
+        "createdAt": row["created_at"],
+        "lastSeenAt": row["last_seen_at"],
+        "submitted": row["submitted"],
+    }
