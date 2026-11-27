@@ -4,6 +4,10 @@ dist-demo
 .env
 .env.local
 .env.*.local
+# README promised this was ignored and it was not. The repository is public and
+# the production build config is written here.
+.env.production
+server/.env
 .firebase
 firebase-debug.log
 firebase-debug.*.log
