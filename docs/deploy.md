@@ -22,6 +22,27 @@ The VPS already runs platia and Hermes, and its backups are **weekly**, so a
 restore point could be six days old. hPanel → VPS → Snapshots → take one. It is
 one click and it is the only thing here that is hard to undo.
 
+## The company website
+
+`tropicaljuicebar.com` must not be affected by any of this, so:
+
+| Record | Value | What it is |
+| --- | --- | --- |
+| `@` | `82.25.87.9` | The live WordPress site. **Do not touch.** |
+| `www` | `tropicaljuicebar.com` | The same site. **Do not touch.** |
+| `MX` | Google Workspace | Company email. **Do not touch.** |
+| `platia` | `2.24.76.133` | The other service. **Do not touch.** |
+| `franchise` | `82.25.87.9` → `2.24.76.133` | The only record this project changes. |
+
+The website lives on Hostinger shared hosting at `82.25.87.9`. The portal lives
+on the VPS at `2.24.76.133`. They are different machines: nothing done on the VPS
+can reach the website. The only shared thing is the DNS zone, and only one record
+in it.
+
+**The trap:** `franchise` currently points at the same address as the website, so
+in GoDaddy's list the two rows carry the same value. Match on the **host name**,
+never on the address.
+
 ## What this cannot disturb
 
 Its own container, its own database file, port 5005 (platia is on 5004), its own
@@ -33,7 +54,7 @@ will use both cores for a few minutes. platia will feel slower while that runs.
 It will not stop.
 
 The real risk in this runbook is step 6, the DNS record, and it is not on the
-VPS at all.
+VPS at all. Read "The company website" above before doing it.
 
 ## 1. Get the code onto the VPS
 
@@ -110,6 +131,12 @@ curl -s -H 'Host: franchise.tropicaljuicebar.com' localhost/healthz
 
 ## 6. Point the domain at it
 
+Check the website is fine first, so you know its state before and after:
+
+```bash
+./server/check_site.sh
+```
+
 At GoDaddy, change **only** the A record whose host is `franchise`, from the
 shared-hosting address to the VPS address `2.24.76.133`.
 
@@ -119,12 +146,16 @@ list shows several records, match on the host name `franchise`, not on the
 address. Then wait for it to spread, and watch Traefik get a certificate:
 
 ```bash
+./server/check_site.sh
 dig +short franchise.tropicaljuicebar.com
 curl -sI https://franchise.tropicaljuicebar.com/healthz
 ```
 
-Afterwards, remove the `franchise` subdomain from Hostinger shared hosting in
-hPanel, so nothing is left serving the old placeholder.
+If `check_site.sh` reports anything moved, put that record back before going on.
+
+**Leave the Hostinger subdomain alone.** Once DNS points at the VPS nothing
+reaches it, so it costs nothing to keep, and deleting the wrong entry in hPanel
+is one of the few ways to take the company website down. Not worth the tidiness.
 
 ## 7. Make the first admin
 
