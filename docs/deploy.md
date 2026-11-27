@@ -89,8 +89,12 @@ looking at.
 ssh <the VPS that runs platia>
 sudo mkdir -p /opt/portal && sudo chown "$USER" /opt/portal
 git clone https://github.com/carlosd-a11y/tjb-franchise-portal.git /opt/portal
-cd /opt/portal && mkdir -p data
+cd /opt/portal && mkdir -p data && chown -R 1000:1000 data
 ```
+
+That `chown` matters. The container runs as user 1000, so a data directory owned
+by root means SQLite cannot create the file and the container restarts forever
+on "unable to open database file". `deploy.sh` does it for you.
 
 ## 2. The browser config
 

@@ -26,7 +26,11 @@ command -v docker >/dev/null 2>&1 || die "docker is not installed."
 docker compose version >/dev/null 2>&1 || die "docker compose is not available."
 [ -f docker-compose.yml ] || die "run this from the portal directory."
 
+# The container runs as 1000:1000, so the database directory has to belong to
+# that user. Created by root, SQLite inside the container cannot write to it and
+# the container crash-loops on "unable to open database file".
 mkdir -p data
+chown -R 1000:1000 data 2>/dev/null || true
 
 # ── The browser config ───────────────────────────────────────────────────────
 
