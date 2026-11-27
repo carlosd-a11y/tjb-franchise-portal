@@ -215,12 +215,12 @@ Admin → Users, pasting the UID that Firebase shows for them.
 ## 8. Nightly backup
 
 ```bash
-sudo tee /etc/cron.d/portal-backup <<'CRON'
-0 3 * * * root docker compose -f /opt/portal/docker-compose.yml exec -T portal /app/server/backup.sh
-CRON
+cp /opt/portal/server/backup.sh /usr/local/bin/portal-backup.sh
+echo '0 3 * * * root docker exec -i franchise-portal sh < /usr/local/bin/portal-backup.sh >> /var/log/portal-backup.log 2>&1' > /etc/cron.d/portal-backup
 ```
 
-The database is one file in `/opt/portal/data`. Copying it is the whole backup.
+Copies land in `/opt/portal/data/backups`, kept for 14 days. They are on the same
+disk as the database, so they cover mistakes, not losing the server.
 
 ## Updating later
 
