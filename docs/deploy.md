@@ -64,6 +64,25 @@ cd /opt/portal && docker compose build && docker compose up -d
 The real risk in this runbook is step 6, the DNS record, and it is not on the
 VPS at all. Read "The company website" above before doing it.
 
+## The short way
+
+In the VPS web console:
+
+```bash
+git clone https://github.com/carlosd-a11y/tjb-franchise-portal.git /opt/portal
+cd /opt/portal && ./deploy.sh
+```
+
+It asks for the Firebase config once — paste the whole block from the console,
+press Ctrl-D — then builds, starts, and checks itself. Run it again any time to
+update; it keeps the config and the database.
+
+It touches nothing outside `/opt/portal`, and it does not change DNS. That step
+is left to a person on purpose.
+
+The rest of this page is the same thing by hand, for when something needs
+looking at.
+
 ## 1. Get the code onto the VPS
 
 ```bash
