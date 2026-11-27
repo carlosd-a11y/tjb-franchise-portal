@@ -5,6 +5,9 @@ export const CLAIM_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 export const LOCATION_LIST_LIMIT = 300;
 
+/** Rejected rows keep their address so the rejection warning stays on it. */
+export const REJECTED_ADDRESS_LOCKED = "A rejected location's address can't be changed.";
+
 export const LIMITS = {
   address: 200,
   city: 80,

@@ -352,6 +352,11 @@ describe("address edits", () => {
     await assertFails(updateDoc(admin, { ...fixed, state: "fl" }));
     await assertFails(updateDoc(admin, { ...fixed, address: " " }));
   });
+
+  it("denies an address edit on a rejected location", async () => {
+    await seedLocation("typo3", baseLocation({ status: "rejected" }));
+    await assertFails(updateDoc(doc(dbFor(avery.uid), "locations", "typo3"), fixed));
+  });
 });
 
 describe("notes, history, and rejections", () => {
