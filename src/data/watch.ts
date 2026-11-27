@@ -1,9 +1,9 @@
-import { isDemo } from "../env";
+import { isDemo, useServer } from "../env";
 import { getDemoDb } from "../demo/database";
 import type { HistoryRecord, InviteRecord, LocationRecord, NoteRecord, RejectionRecord, UserProfile } from "../types";
 
 function liveWatch(): Promise<typeof import("./firebaseWatch")> {
-  return import("./firebaseWatch");
+  return useServer ? import("./httpWatch") : import("./firebaseWatch");
 }
 
 export function watchLocations(

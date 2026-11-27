@@ -1,4 +1,4 @@
-import { isDemo } from "../env";
+import { isDemo, useServer } from "../env";
 import { getDemoDb } from "../demo/database";
 import type { CsvRejection } from "./csv";
 import { explain, isReason } from "./explain";
@@ -8,8 +8,13 @@ export { explain, isReason };
 
 type LiveApi = typeof import("./firebaseApi");
 
+/**
+ * Firestore or the server, chosen by VITE_BACKEND. The two export the same
+ * calls with the same signatures; the cast is only here because firebaseApi
+ * also exports its own query helper, and it goes away with that module.
+ */
 function live(): Promise<LiveApi> {
-  return import("./firebaseApi");
+  return useServer ? (import("./httpApi") as unknown as Promise<LiveApi>) : import("./firebaseApi");
 }
 
 export async function claimLocation(id: string, profile: UserProfile): Promise<void> {

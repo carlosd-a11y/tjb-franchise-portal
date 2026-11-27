@@ -18,8 +18,9 @@ notes, history, rejections and roles move to SQLite on the VPS that already runs
 `platia`, behind the Traefik there. The screens and the Firebase sign-in do not
 change. `docs/adr-001-backend-on-the-vps.md` has the reasoning and the plan.
 
-Nothing has been built against this yet. The code on `main` is still the
-Firestore version.
+The server is built and tested (#7). `VITE_BACKEND=server` switches the client
+to it; without that flag the app still talks to Firestore, so nothing has
+changed for anyone until the flag is set and the container is deployed.
 
 ## Status as of 2026-11-27
 
@@ -36,15 +37,20 @@ Firestore version.
 2. Smaller points on #2:
    - `lat`/`lng` are not cleared or editable, so the Map link can keep pointing at the old place.
    - Address edits leave no history entry.
-3. Build the server described in the decision doc: token check, SQLite schema, the routes behind `src/lib/api.ts`, `src/lib/httpApi.ts`, polling in `src/data/watch.ts`, the intake route, and the permission tests ported from `tests/rules/`.
-4. Deploy: container and Traefik route on the VPS, repoint DNS, nightly backup.
-5. Confirm the authenticator-app claim on a real token before requiring it.
+3. **Done in #7:** the server, the client HTTP layer, and the permission tests.
+4. Deploy: `docker compose up -d --build` on the VPS, repoint DNS from shared hosting, set `VITE_BACKEND=server` in the production build, install `server/backup.sh` nightly.
+5. Confirm the authenticator-app claim on a real token, then set `PORTAL_REQUIRE_TOTP=true`.
+6. Delete the Firestore code once the server has run for a week: `firestore.rules`, `firestore.indexes.json`, `firebase.json`, `.firebaserc`, `src/lib/firebaseApi.ts`, `src/data/firebaseWatch.ts`, `api/`, `tests/rules/`, `tests/intake.test.php`, and the cast in `src/lib/api.ts`.
 
 ## Commands
 
 ```bash
 npm ci
-npm test
+npm test              # 8 client tests
 npm run build
 npm run build:demo
+
+cd server
+python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt pytest
+./.venv/bin/python -m pytest   # 84 server tests
 ```

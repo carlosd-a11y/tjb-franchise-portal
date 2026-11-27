@@ -1,5 +1,25 @@
 # Tropical Juice Bar — franchisee location portal
 
+> **The backend moved.** Firebase still signs people in. The data lives in
+> SQLite on the VPS, not in Firestore. See
+> [docs/adr-001-backend-on-the-vps.md](docs/adr-001-backend-on-the-vps.md).
+> The Firestore sections below are kept until that code is deleted, and the
+> "Owner setup — Firebase" steps about Firestore rules and indexes no longer
+> apply. Run the server with `VITE_BACKEND=server`.
+
+## Running the server
+
+```bash
+cd server
+python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt pytest
+./.venv/bin/python -m pytest        # 84 tests
+cp .env.example .env                # fill in the Firebase project id
+PORTAL_FIREBASE_PROJECT_ID=... ./.venv/bin/python app.py
+```
+
+`npm run build` first, so there is a `dist/` for it to serve. In production
+`docker compose up -d --build` does both.
+
 Phase 1 of the portal for `franchise.tropicaljuicebar.com`. It is a static Vite + React + TypeScript app. Firebase Auth and Firestore are the backend. A small PHP endpoint on Hostinger lets bots add pool locations without Cloud Functions.
 
 Nothing in this repo deploys, creates a Firebase project, or changes DNS. Local development uses the Firebase Local Emulator Suite and a `demo-` project id, which cannot reach production.

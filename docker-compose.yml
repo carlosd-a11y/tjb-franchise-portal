@@ -1,0 +1,31 @@
+# Franchisee location portal, beside the other service on the VPS and behind the
+# Traefik already running there. No port is published: the only way in is
+# https://franchise.tropicaljuicebar.com.
+#
+# The database is a file in ./data on the host, so it survives a rebuild and a
+# backup is one copy. See docs/adr-001-backend-on-the-vps.md.
+services:
+  portal:
+    build: .
+    restart: unless-stopped
+    user: "1000:1000"
+    env_file: .env
+    environment:
+      TZ: America/New_York
+      PORTAL_DB: /data/portal.db
+      HOME: /tmp          # gunicorn keeps a control socket under $HOME
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5005/healthz')"]
+      interval: 60s
+      start_period: 20s
+      start_interval: 3s  # Traefik only routes to healthy containers
+      timeout: 10s
+      retries: 3
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.portal.rule=Host(`franchise.tropicaljuicebar.com`)
+      - traefik.http.routers.portal.entrypoints=websecure
+      - traefik.http.routers.portal.tls.certresolver=letsencrypt
+      - traefik.http.services.portal.loadbalancer.server.port=5005

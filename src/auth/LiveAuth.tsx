@@ -13,7 +13,8 @@ import {
 } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../firebaseLive";
-import { firebaseConfigured, requireTotp } from "../env";
+import { firebaseConfigured, requireTotp, useServer } from "../env";
+import { fetchProfile } from "../lib/httpApi";
 import type { UserProfile } from "../types";
 import { AuthContext, type AuthState } from "./authContext";
 
@@ -65,6 +66,20 @@ export function LiveAuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!user) return;
+    if (useServer) {
+      let cancelled = false;
+      void fetchProfile().then(
+        (next) => {
+          if (!cancelled) setProfile(next);
+        },
+        () => {
+          if (!cancelled) setProfile(null);
+        },
+      );
+      return () => {
+        cancelled = true;
+      };
+    }
     return onSnapshot(
       doc(db, "users", user.uid),
       (snap) => {
