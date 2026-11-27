@@ -16,3 +16,12 @@ api/config.php
 *serviceAccount*.json
 coverage
 .DS_Store
+
+# server
+server/.venv
+server/*.db
+server/*.db-wal
+server/*.db-shm
+server/__pycache__
+server/tests/__pycache__
+.pytest_cache
