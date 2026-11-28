@@ -2,8 +2,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { watchInvites, watchUsers } from "../data/watch";
 import { useAuth } from "../auth/AuthProvider";
 import { Banner, Button, TextField } from "../components/ui";
-import { explain, saveInvite, saveUser, updateInviteStatus } from "../lib/api";
-import type { InviteRecord, Role, UserProfile } from "../types";
+import { deleteInvite, explain, resendInvite, saveInvite, saveUser } from "../lib/api";
+import type { InviteRecord, InviteSent, Role, UserProfile } from "../types";
 
 export function AdminUsersPage() {
   const { state } = useAuth();
@@ -18,6 +18,7 @@ export function AdminUsersPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
   const [inviteRole, setInviteRole] = useState<Role>("franchisee");
+  const [sent, setSent] = useState<(InviteSent & { email: string }) | null>(null);
 
   useEffect(() => {
     const stopUsers = watchUsers(
@@ -121,7 +122,29 @@ export function AdminUsersPage() {
         </section>
         <section className="card">
           <h2>Invites</h2>
-          <p className="hint">An invite does not grant access. Provision the Auth user, then mark it done.</p>
+          <p className="hint">
+            The person gets an email with a link, sets their own password, and is let in with the role
+            you choose here. The link works once and expires in 7 days.
+          </p>
+          {sent ? (
+            <Banner tone={sent.emailed ? "info" : "warn"}>
+              {sent.emailed ? (
+                <>Invitation emailed to {sent.email}.</>
+              ) : (
+                <>
+                  {sent.problem} <br />
+                  <code className="key-box">{sent.link}</code>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => void navigator.clipboard?.writeText(sent.link).catch(() => {})}
+                  >
+                    Copy link
+                  </Button>
+                </>
+              )}
+            </Banner>
+          ) : null}
           {invites.map((invite) => (
             <div key={invite.id} className="user-row">
               <div className="split">
@@ -131,12 +154,31 @@ export function AdminUsersPage() {
                     {invite.email} · {invite.role}
                   </p>
                 </div>
-                <span className="pill">{invite.status}</span>
+                <span className="pill">{invite.status === "provisioned" ? "Accepted" : "Waiting"}</span>
               </div>
               {invite.status === "pending" ? (
-                <Button type="button" variant="secondary" onClick={() => void updateInviteStatus(invite.id, "provisioned")}>
-                  Mark provisioned
-                </Button>
+                <div className="actions">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() =>
+                      void resendInvite(invite.id)
+                        .then((result) => setSent({ ...result, email: invite.email }))
+                        .catch((err: unknown) => setError(explain(err)))
+                    }
+                  >
+                    Send again
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="quiet"
+                    onClick={() =>
+                      void deleteInvite(invite.id).catch((err: unknown) => setError(explain(err)))
+                    }
+                  >
+                    Withdraw
+                  </Button>
+                </div>
               ) : null}
             </div>
           ))}
@@ -146,7 +188,8 @@ export function AdminUsersPage() {
             onSubmit={(event) => {
               event.preventDefault();
               void saveInvite(inviteEmail, inviteName.trim(), inviteRole, me.uid)
-                .then(() => {
+                .then((result) => {
+                  setSent({ ...result, email: inviteEmail.trim().toLowerCase() });
                   setInviteEmail("");
                   setInviteName("");
                 })
@@ -163,7 +206,7 @@ export function AdminUsersPage() {
               </select>
             </label>
             <Button type="submit" variant="secondary">
-              Save invite
+              Send invitation
             </Button>
           </form>
         </section>

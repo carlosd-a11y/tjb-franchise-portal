@@ -22,6 +22,7 @@ import { normalizeAddress } from "./normalize";
 import { matchRejectionHits } from "./rejectionHits";
 import { isClaimable, toDate } from "./time";
 import type {
+  InviteSent,
   LocationDoc,
   LocationStatus,
   ReasonCode,
@@ -309,7 +310,7 @@ export async function saveInvite(
   name: string,
   role: UserProfile["role"],
   createdBy: string,
-): Promise<void> {
+): Promise<InviteSent> {
   const id = email.trim().toLowerCase();
   await setDoc(doc(db, "invites", id), {
     email: id,
@@ -319,4 +320,24 @@ export async function saveInvite(
     createdAt: serverTimestamp(),
     status: "pending",
   });
+  // The Firestore build has no server to send mail from. See adr-001.
+  return {
+    link: `${window.location.origin}/invite/unavailable`,
+    emailed: false,
+    problem: "This build cannot send invitations. It needs the portal server.",
+  };
 }
+
+export async function resendInvite(id: string): Promise<InviteSent> {
+  await updateDoc(doc(db, "invites", id), { status: "pending" });
+  return {
+    link: `${window.location.origin}/invite/unavailable`,
+    emailed: false,
+    problem: "This build cannot send invitations. It needs the portal server.",
+  };
+}
+
+export async function deleteInvite(id: string): Promise<void> {
+  await deleteDoc(doc(db, "invites", id));
+}
+

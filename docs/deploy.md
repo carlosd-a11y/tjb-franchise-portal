@@ -186,8 +186,10 @@ docker compose exec portal sh -c '
 It refuses unless all four are set, and does nothing if an active admin already
 exists. It never touches passwords: Firebase holds those.
 
-Sign in at `https://franchise.tropicaljuicebar.com`. Everyone else is added from
-Admin → Users, pasting the UID that Firebase shows for them.
+Sign in at `https://franchise.tropicaljuicebar.com`. Everyone else is invited
+from Admin → Users: they get an email, set their own password and are let in
+with the role you picked. See `invites.md`, which also covers the one SMTP
+setting that makes the email go out.
 
 ## 8. Nightly backup
 
@@ -212,5 +214,6 @@ cd /opt/portal && git pull && docker compose up -d --build
 | "Sign in again." on every page | `PORTAL_FIREBASE_PROJECT_ID` does not match the project the token came from |
 | "This account has no access yet." | The Firebase user exists but has no row here. Step 7, or Admin → Users |
 | Sign-in popup refuses the domain | The domain is not authorized in Firebase Auth settings |
+| Invites show a link instead of sending | SMTP is not set up, or Google refused it. `invites.md` |
 | "The site has not been built yet" | The image built without `dist/`. Rebuild with `--build` |
 | Traefik serves its own 404 | The labels did not match. Step 4 |

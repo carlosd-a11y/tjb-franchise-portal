@@ -51,6 +51,11 @@ def init_db(conn: sqlite3.Connection) -> None:
         if column not in have:
             conn.execute(f"ALTER TABLE locations ADD COLUMN {column} TEXT")
 
+    have = {row[1] for row in conn.execute("PRAGMA table_info(invites)")}
+    for column in ("token_hash", "expires_at", "accepted_at"):
+        if column not in have:
+            conn.execute(f"ALTER TABLE invites ADD COLUMN {column} TEXT")
+
 
 def new_id() -> str:
     """URL-safe and inside the ^[A-Za-z0-9_-]{1,128}$ shape ids had before."""

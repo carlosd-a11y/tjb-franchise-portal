@@ -3,6 +3,7 @@ import type { CsvRejection } from "./csv";
 import type {
   HistoryRecord,
   InviteRecord,
+  InviteSent,
   LocationDoc,
   LocationRecord,
   NoteRecord,
@@ -243,8 +244,16 @@ export async function saveInvite(
   name: string,
   role: UserProfile["role"],
   _createdBy: string,
-): Promise<void> {
-  await post("/api/invites", { email, name, role });
+): Promise<InviteSent> {
+  return post<InviteSent>("/api/invites", { email, name, role });
+}
+
+export async function resendInvite(id: string): Promise<InviteSent> {
+  return send<InviteSent>(`/api/invites/${encodeURIComponent(id)}/resend`, { method: "POST" });
+}
+
+export async function deleteInvite(id: string): Promise<void> {
+  await send(`/api/invites/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
 export async function updateInviteStatus(id: string, status: "pending" | "provisioned"): Promise<void> {
