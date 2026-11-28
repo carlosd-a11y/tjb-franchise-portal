@@ -13,6 +13,7 @@ from flask import Flask, jsonify, send_from_directory
 
 import admin
 import intake
+import invites
 import locations
 import pages
 import scouts
@@ -28,6 +29,7 @@ def create_app(**overrides) -> Flask:
     app.config.update(
         FIREBASE_PROJECT_ID=os.environ.get("PORTAL_FIREBASE_PROJECT_ID", ""),
         REQUIRE_SECOND_FACTOR=os.environ.get("PORTAL_REQUIRE_TOTP", "") == "true",
+        BASE_URL=os.environ.get("PORTAL_BASE_URL", "https://franchise.tropicaljuicebar.com"),
         GOOGLE_KEYS=GoogleKeys(),
         DIST=DIST,
     )
@@ -38,6 +40,7 @@ def create_app(**overrides) -> Flask:
 
     app.register_blueprint(locations.bp)
     app.register_blueprint(admin.bp)
+    app.register_blueprint(invites.bp)
     app.register_blueprint(pages.bp)
     app.register_blueprint(scouts.bp)
     app.register_blueprint(intake.bp)

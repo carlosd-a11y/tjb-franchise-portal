@@ -104,6 +104,13 @@ export type InviteDoc = {
 
 export type InviteRecord = InviteDoc & { id: string };
 
+/** What the server reports after an invite goes out. The link is shown once. */
+export type InviteSent = {
+  link: string;
+  emailed: boolean;
+  problem?: string;
+};
+
 /** A scouting platform allowed to push finds in. The key is never held here. */
 export type ScoutRecord = {
   id: string;

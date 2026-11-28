@@ -1,5 +1,5 @@
 """
-Users, invites and the rejected-locations list.
+Users and the rejected-locations list. Invites live in invites.py.
 
 Reading rejections is open to any active user, because the warning is the point.
 Everything that writes here is admin only, as it was in firestore.rules.
@@ -103,43 +103,3 @@ def save_user(user_id: str):
     return jsonify({"ok": True})
 
 
-@bp.get("/api/invites")
-@admin_only
-def list_invites():
-    rows = get_db().execute("SELECT * FROM invites ORDER BY created_at DESC").fetchall()
-    return jsonify({"invites": [serialize.invite(row) for row in rows]})
-
-
-@bp.post("/api/invites")
-@admin_only
-def save_invite():
-    payload = request.get_json(silent=True) or {}
-    address = validators.email(payload.get("email"))
-    get_db().execute(
-        "INSERT INTO invites (id, email, name, role, created_by, created_at, status)"
-        " VALUES (?, ?, ?, ?, ?, ?, 'pending')"
-        " ON CONFLICT (id) DO UPDATE SET name = excluded.name, role = excluded.role,"
-        " created_by = excluded.created_by, created_at = excluded.created_at, status = 'pending'",
-        (
-            address,
-            address,
-            validators.clean(payload.get("name"), LIMITS["name"], "a name"),
-            validators.role(payload.get("role")),
-            profile()["uid"],
-            now(),
-        ),
-    )
-    return jsonify({"ok": True}), 201
-
-
-@bp.patch("/api/invites/<invite_id>")
-@admin_only
-def update_invite(invite_id: str):
-    status = (request.get_json(silent=True) or {}).get("status")
-    if status not in ("pending", "provisioned"):
-        raise ApiError("That status is not valid.")
-    conn = get_db()
-    if conn.execute("SELECT 1 FROM invites WHERE id = ?", (invite_id,)).fetchone() is None:
-        raise ApiError("Invite not found.", 404)
-    conn.execute("UPDATE invites SET status = ? WHERE id = ?", (status, invite_id))
-    return jsonify({"ok": True})

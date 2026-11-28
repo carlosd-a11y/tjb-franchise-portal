@@ -80,6 +80,21 @@ function LiveLogin() {
   return <Page />;
 }
 
+function LiveInvite() {
+  const [Page, setPage] = useState<ComponentType | null>(null);
+  useEffect(() => {
+    void import("./pages/InvitePage").then((mod) => setPage(() => mod.InvitePage));
+  }, []);
+  if (!Page) {
+    return (
+      <div className="center-screen">
+        <p>Loading</p>
+      </div>
+    );
+  }
+  return <Page />;
+}
+
 function LiveMfa() {
   const [Page, setPage] = useState<ComponentType | null>(null);
   useEffect(() => {
@@ -104,6 +119,7 @@ export function App() {
           <>
             <Route path="/login" element={<LiveLogin />} />
             <Route path="/mfa" element={<LiveMfa />} />
+            <Route path="/invite/:token" element={<LiveInvite />} />
           </>
         )}
         <Route element={<Gate />}>

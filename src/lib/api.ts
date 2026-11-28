@@ -2,7 +2,7 @@ import { isDemo, useServer } from "../env";
 import { getDemoDb } from "../demo/database";
 import type { CsvRejection } from "./csv";
 import { explain, isReason } from "./explain";
-import type { ReasonCode, RejectionHit, UserProfile } from "../types";
+import type { InviteSent, ReasonCode, RejectionHit, UserProfile } from "../types";
 
 export { explain, isReason };
 
@@ -108,9 +108,19 @@ export async function saveInvite(
   name: string,
   role: UserProfile["role"],
   createdBy: string,
-): Promise<void> {
+): Promise<InviteSent> {
   if (isDemo) return getDemoDb().saveInvite(email, name, role, createdBy);
   return (await live()).saveInvite(email, name, role, createdBy);
+}
+
+export async function resendInvite(id: string): Promise<InviteSent> {
+  if (isDemo) return getDemoDb().resendInvite(id);
+  return (await live()).resendInvite(id);
+}
+
+export async function deleteInvite(id: string): Promise<void> {
+  if (isDemo) return getDemoDb().deleteInvite(id);
+  return (await live()).deleteInvite(id);
 }
 
 /**

@@ -21,7 +21,12 @@ CREATE TABLE IF NOT EXISTS invites (
   role       TEXT NOT NULL CHECK (role IN ('admin', 'franchisee')),
   created_by TEXT NOT NULL,
   created_at TEXT NOT NULL,
-  status     TEXT NOT NULL CHECK (status IN ('pending', 'provisioned'))
+  status     TEXT NOT NULL CHECK (status IN ('pending', 'provisioned')),
+  -- The invite link carries a one-time token. Only its hash is kept, as with
+  -- scout keys, so this file cannot be read to let someone in.
+  token_hash  TEXT,
+  expires_at  TEXT,
+  accepted_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS locations (

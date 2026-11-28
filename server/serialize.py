@@ -107,6 +107,8 @@ def invite(row) -> dict:
         "createdBy": row["created_by"],
         "createdAt": row["created_at"],
         "status": row["status"],
+        "expiresAt": row["expires_at"] if "expires_at" in row.keys() else None,
+        "acceptedAt": row["accepted_at"] if "accepted_at" in row.keys() else None,
     }
 
 

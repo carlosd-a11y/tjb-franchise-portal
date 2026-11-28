@@ -6,6 +6,7 @@ import type { CsvRejection } from "../lib/csv";
 import type {
   HistoryRecord,
   InviteRecord,
+  InviteSent,
   LocationRecord,
   LocationStatus,
   NoteRecord,
@@ -87,7 +88,9 @@ export type DemoDatabase = {
   deleteLocation: (id: string) => void;
   importRejections: (rows: CsvRejection[]) => void;
   saveUser: (profile: UserProfile) => void;
-  saveInvite: (email: string, name: string, role: UserProfile["role"], createdBy: string) => void;
+  saveInvite: (email: string, name: string, role: UserProfile["role"], createdBy: string) => InviteSent;
+  resendInvite: (id: string) => InviteSent;
+  deleteInvite: (id: string) => void;
   updateInviteStatus: (id: string, status: "pending" | "provisioned") => void;
   scouts: () => ScoutRecord[];
   createScout: (name: string, label: string) => string;
@@ -95,6 +98,15 @@ export type DemoDatabase = {
   updateScout: (id: string, changes: { label?: string; active?: boolean }) => void;
   deleteScout: (id: string) => void;
 };
+
+/** The sample data has no mail server, and says so rather than pretending. */
+function demoSent(id: string): InviteSent {
+  return {
+    link: `${window.location.origin}/invite/demo-${encodeURIComponent(id)}`,
+    emailed: false,
+    problem: "Sample data: no email was sent and this link does not work.",
+  };
+}
 
 export function createDemoDatabase(storage: DemoStorage): DemoDatabase {
   const listeners = new Set<Listener>();
@@ -363,6 +375,18 @@ export function createDemoDatabase(storage: DemoStorage): DemoDatabase {
         createdAt: nowIso(),
         status: "pending",
       });
+      persist();
+      return demoSent(id);
+    },
+    resendInvite(id) {
+      const row = raw.invites.find((invite) => invite.id === id);
+      if (!row) throw new Error("Invite not found.");
+      row.status = "pending";
+      persist();
+      return demoSent(id);
+    },
+    deleteInvite(id) {
+      raw.invites = raw.invites.filter((invite) => invite.id !== id);
       persist();
     },
     scouts() {
