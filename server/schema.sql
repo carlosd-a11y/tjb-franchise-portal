@@ -115,3 +115,12 @@ CREATE TABLE IF NOT EXISTS scouts (
   last_seen_at TEXT,
   submitted    INTEGER NOT NULL DEFAULT 0
 );
+
+-- Pages an admin writes in the portal. The text lives only here: it can be
+-- confidential and the code repository is public.
+CREATE TABLE IF NOT EXISTS pages (
+  slug       TEXT PRIMARY KEY,
+  body       TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL
+);

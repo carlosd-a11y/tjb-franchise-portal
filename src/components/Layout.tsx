@@ -22,6 +22,9 @@ export function Layout() {
             <NavLink to="/rejections" className={({ isActive }) => `nav-link${isActive ? " on" : ""}`}>
               Rejected
             </NavLink>
+            <NavLink to="/criteria" className={({ isActive }) => `nav-link${isActive ? " on" : ""}`}>
+              Site criteria
+            </NavLink>
             {admin ? (
               <NavLink to="/admin/users" className={({ isActive }) => `nav-link${isActive ? " on" : ""}`}>
                 Users

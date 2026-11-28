@@ -250,3 +250,11 @@ export async function saveInvite(
 export async function updateInviteStatus(id: string, status: "pending" | "provisioned"): Promise<void> {
   await patch(`/api/invites/${encodeURIComponent(id)}`, { status });
 }
+
+export function fetchPage(slug: string): Promise<string> {
+  return send<{ body: string }>(`/api/pages/${slug}`).then((page) => page.body);
+}
+
+export async function savePage(slug: string, body: string): Promise<void> {
+  await send(`/api/pages/${slug}`, { method: "PUT", body: JSON.stringify({ body }) });
+}
