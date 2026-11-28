@@ -6,6 +6,7 @@ import { Layout } from "./components/Layout";
 import { isDemo } from "./env";
 import { AddLocationPage } from "./pages/AddLocationPage";
 import { AdminUsersPage } from "./pages/AdminUsersPage";
+import { CriteriaPage } from "./pages/CriteriaPage";
 import { ImportPage } from "./pages/ImportPage";
 import { LocationDetailPage } from "./pages/LocationDetailPage";
 import { LocationsPage } from "./pages/LocationsPage";
@@ -110,6 +111,7 @@ export function App() {
           <Route path="/locations/new" element={<AddLocationPage />} />
           <Route path="/locations/:id" element={<LocationDetailPage />} />
           <Route path="/rejections" element={<RejectionsPage />} />
+          <Route path="/criteria" element={<CriteriaPage />} />
           <Route path="/admin/users" element={<AdminGate />} />
           <Route path="/admin/scouts" element={<ScoutsRoute />} />
           <Route path="/admin/import" element={<ImportRoute />} />

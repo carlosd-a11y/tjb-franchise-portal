@@ -14,6 +14,7 @@ from flask import Flask, jsonify, send_from_directory
 import admin
 import intake
 import locations
+import pages
 import scouts
 from db import close_db, get_db, init_db, open_db
 from errors import ApiError, handle
@@ -37,6 +38,7 @@ def create_app(**overrides) -> Flask:
 
     app.register_blueprint(locations.bp)
     app.register_blueprint(admin.bp)
+    app.register_blueprint(pages.bp)
     app.register_blueprint(scouts.bp)
     app.register_blueprint(intake.bp)
     app.register_error_handler(ApiError, handle)

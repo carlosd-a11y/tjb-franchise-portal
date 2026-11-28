@@ -144,3 +144,14 @@ export async function deleteScout(id: string): Promise<void> {
   if (isDemo) return getDemoDb().deleteScout(id);
   return (await scoutApi()).deleteScout(id);
 }
+
+/** Admin-written pages. The demo keeps a placeholder in the browser, never real text. */
+export async function fetchPage(slug: string): Promise<string> {
+  if (isDemo) return localStorage.getItem(`tjb-demo-page-${slug}`) ?? "## Sample heading\n- Sample point";
+  return (await scoutApi()).fetchPage(slug);
+}
+
+export async function savePage(slug: string, body: string): Promise<void> {
+  if (isDemo) return localStorage.setItem(`tjb-demo-page-${slug}`, body);
+  return (await scoutApi()).savePage(slug, body);
+}
