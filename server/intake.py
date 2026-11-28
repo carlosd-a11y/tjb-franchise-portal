@@ -66,7 +66,8 @@ def intake():
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
         raise ApiError("Body must be a JSON object.")
-    allowed = {"address", "city", "state", "zip", "sqft", "rent", "lat", "lng"}
+    allowed = {"address", "city", "state", "zip", "sqft", "rent", "lat", "lng",
+               "listingUrl", "contactName", "contactPhone"}
     unknown = set(payload) - allowed
     if unknown:
         raise ApiError(f"Unknown field: {sorted(unknown)[0]}")
@@ -91,12 +92,13 @@ def intake():
         conn.execute(
             "INSERT INTO locations (id, address, city, state, zip, normalized_address, lat, lng, sqft,"
             " rent, source, status, claimed_by, claimed_by_name, claimed_at, last_activity_at,"
-            " created_by, created_at, pass_reason)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pool', NULL, NULL, NULL, ?, ?, ?, NULL)",
+            " created_by, created_at, pass_reason, listing_url, contact_name, contact_phone)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pool', NULL, NULL, NULL, ?, ?, ?, NULL, ?, ?, ?)",
             (
                 location_id, fields["address"], fields["city"], fields["state"], fields["zip"],
                 fields["normalizedAddress"], fields["lat"], fields["lng"], fields["sqft"],
                 fields["rent"], f"bot:{source}", stamp, f"bot:{source}", stamp,
+                fields["listingUrl"], fields["contactName"], fields["contactPhone"],
             ),
         )
         note_seen(conn, scout["id"], created=True)

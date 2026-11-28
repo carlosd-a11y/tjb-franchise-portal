@@ -72,7 +72,44 @@ def draft_location(payload: dict) -> dict:
     fields["sqft"] = whole(payload.get("sqft"), LIMITS["sqft_min"], LIMITS["sqft_max"], "the square feet")
     fields["rent"] = whole(payload.get("rent"), LIMITS["rent_min"], LIMITS["rent_max"], "the monthly rent")
     fields["lat"], fields["lng"] = geo(payload)
+    fields["listingUrl"] = listing_url(payload.get("listingUrl"))
+    fields["contactName"] = optional(payload.get("contactName"), LIMITS["name"], "Contact name is too long.")
+    fields["contactPhone"] = phone(payload.get("contactPhone"))
     return fields
+
+
+def optional(value, maximum: int, message: str) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ApiError(message)
+    text = re.sub(r"\s+", " ", value).strip()
+    if len(text) > maximum:
+        raise ApiError(message)
+    return text or None
+
+
+def listing_url(value) -> str | None:
+    """Only web links: this is rendered as a clickable href."""
+    message = "listingUrl must be a web link starting with http:// or https://."
+    text = optional(value, 1000, message)
+    if text is None:
+        return None
+    if not re.fullmatch(r"https?://[^\s/?#\\]+[^\s]*", text, re.IGNORECASE):
+        raise ApiError(message)
+    return text
+
+
+def phone(value) -> str | None:
+    message = "contactPhone does not look like a phone number."
+    text = optional(value, 40, message)
+    if text is None:
+        return None
+    if not re.fullmatch(r"[0-9+(). \-]+(?:(?:x|ext\.?) ?[0-9]+)?", text, re.IGNORECASE):
+        raise ApiError(message)
+    if len(re.sub(r"\D", "", text)) < 7:
+        raise ApiError(message)
+    return text
 
 
 def reason(value, field: str = "a short explanation") -> str:

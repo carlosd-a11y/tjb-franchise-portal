@@ -44,7 +44,10 @@ CREATE TABLE IF NOT EXISTS locations (
   last_activity_at   TEXT NOT NULL,
   created_by         TEXT NOT NULL,
   created_at         TEXT NOT NULL,
-  pass_reason        TEXT
+  pass_reason        TEXT,
+  listing_url        TEXT,
+  contact_name       TEXT,
+  contact_phone      TEXT
 );
 
 CREATE INDEX IF NOT EXISTS locations_activity ON locations (last_activity_at DESC);

@@ -132,6 +132,24 @@ export function LocationDetailPage() {
               </a>
             </p>
           ) : null}
+          {location.listingUrl && /^https?:\/\//i.test(location.listingUrl) ? (
+            <p style={{ marginTop: 8 }}>
+              <a href={location.listingUrl} target="_blank" rel="noopener noreferrer">
+                View listing
+              </a>
+            </p>
+          ) : null}
+          {location.contactName || location.contactPhone ? (
+            <p style={{ marginTop: 8 }}>
+              Contact: {location.contactName}
+              {location.contactName && location.contactPhone ? " · " : ""}
+              {location.contactPhone ? (
+                <a href={`tel:${location.contactPhone.split(/x|ext/i)[0].replace(/[^0-9+]/g, "")}`}>{location.contactPhone}</a>
+              ) : null}
+            </p>
+          ) : location.contactHidden ? (
+            <p className="hint">Claim this site to see its contact.</p>
+          ) : null}
           {location.status === "pool" && location.passReason ? (
             <p className="hint">Last pass: {location.passReason}</p>
           ) : null}

@@ -20,6 +20,9 @@ export type RawLocation = {
   createdBy: string;
   createdAt: string;
   passReason: string | null;
+  listingUrl?: string | null;
+  contactName?: string | null;
+  contactPhone?: string | null;
 };
 
 export type RawNote = {

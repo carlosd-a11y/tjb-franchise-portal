@@ -45,6 +45,11 @@ def close_db(_exception=None) -> None:
 
 def init_db(conn: sqlite3.Connection) -> None:
     conn.executescript((BASE_DIR / "schema.sql").read_text())
+    # A database made before these columns existed gets them added in place.
+    have = {row[1] for row in conn.execute("PRAGMA table_info(locations)")}
+    for column in ("listing_url", "contact_name", "contact_phone"):
+        if column not in have:
+            conn.execute(f"ALTER TABLE locations ADD COLUMN {column} TEXT")
 
 
 def new_id() -> str:

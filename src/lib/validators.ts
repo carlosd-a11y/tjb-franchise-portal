@@ -11,6 +11,9 @@ export type DraftLocation = {
   rent: string;
   lat: string;
   lng: string;
+  listingUrl?: string;
+  contactName?: string;
+  contactPhone?: string;
 };
 
 export type ParsedLocation = {
@@ -23,6 +26,9 @@ export type ParsedLocation = {
   rent: number;
   lat: number | null;
   lng: number | null;
+  listingUrl?: string;
+  contactName?: string;
+  contactPhone?: string;
 };
 
 function clean(value: string, max: number): string | null {
@@ -65,7 +71,22 @@ export function parseDraftLocation(draft: DraftLocation): { value: ParsedLocatio
 
   const normalizedAddress = normalizeAddress(address, city, state, zip);
   if (!normalizedAddressOk(normalizedAddress)) return { error: "That address cannot be saved." };
-  return { value: { address, city, state, zip, normalizedAddress, sqft, rent, lat, lng } };
+  const listingUrl = (draft.listingUrl ?? "").trim();
+  const contactName = (draft.contactName ?? "").trim();
+  const contactPhone = (draft.contactPhone ?? "").trim();
+  if (listingUrl && !/^https?:\/\/[^\s/?#]+\S*$/i.test(listingUrl)) {
+    return { error: "The listing link must start with http:// or https://." };
+  }
+  if (contactName.length > LIMITS.name) return { error: "Contact name is too long." };
+  if (contactPhone && contactPhone.replace(/\D/g, "").length < 7) return { error: "That phone number looks wrong." };
+
+  // Left out when empty, so a record without them has the same shape as before.
+  const extras = {
+    ...(listingUrl ? { listingUrl } : {}),
+    ...(contactName ? { contactName } : {}),
+    ...(contactPhone ? { contactPhone } : {}),
+  };
+  return { value: { address, city, state, zip, normalizedAddress, sqft, rent, lat, lng, ...extras } };
 }
 
 export type DraftAddress = Pick<DraftLocation, "address" | "city" | "state" | "zip">;

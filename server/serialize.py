@@ -5,9 +5,30 @@ Timestamps leave as ISO-8601 strings. The browser wraps them so the pages keep
 calling .toDate(), exactly as they did with Firestore and with the demo store.
 """
 
+from db import is_stale
+from model import ACTIVE_CLAIM_STATUSES, CLAIM_WINDOW_DAYS
 
-def location(row) -> dict:
+
+def sees_contact(row, viewer: dict) -> bool:
+    """Admins, and whoever holds a live or approved claim on the site."""
+    if viewer["role"] == "admin":
+        return True
+    if row["claimed_by"] != viewer["uid"]:
+        return False
+    if row["status"] == "approved":
+        return True
+    return row["status"] in ACTIVE_CLAIM_STATUSES and not is_stale(row["last_activity_at"], CLAIM_WINDOW_DAYS)
+
+
+def location(row, viewer: dict) -> dict:
+    visible = sees_contact(row, viewer)
+    has_contact = bool(row["contact_name"] or row["contact_phone"])
     return {
+        "listingUrl": row["listing_url"],
+        # Withheld here, not just hidden on screen: it never leaves the server.
+        "contactName": row["contact_name"] if visible else None,
+        "contactPhone": row["contact_phone"] if visible else None,
+        "contactHidden": has_contact and not visible,
         "id": row["id"],
         "address": row["address"],
         "city": row["city"],

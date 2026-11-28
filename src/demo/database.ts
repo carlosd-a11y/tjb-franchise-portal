@@ -41,9 +41,20 @@ function demoKey(): string {
   return `demo-${Array.from({ length: 4 }, nid).join("")}`.slice(0, 44);
 }
 
-function viewLocation(row: RawLocation): LocationRecord {
+/** Same rule as server/serialize.py. The demo's role switch stores who is looking. */
+function viewLocation(row: RawLocation, viewer: UserProfile | null): LocationRecord {
+  const holds =
+    !!viewer &&
+    row.claimedBy === viewer.uid &&
+    (row.status === "approved" ||
+      (!["pool", "rejected"].includes(row.status) &&
+        !isClaimable(row.status as LocationStatus, new Date(row.lastActivityAt))));
+  const visible = viewer?.role === "admin" || holds;
   return {
     ...row,
+    contactName: visible ? row.contactName : null,
+    contactPhone: visible ? row.contactPhone : null,
+    contactHidden: !visible && !!(row.contactName || row.contactPhone),
     status: row.status as LocationRecord["status"],
     claimedAt: stamp(row.claimedAt),
     lastActivityAt: stamp(row.lastActivityAt)!,
@@ -101,6 +112,11 @@ export function createDemoDatabase(storage: DemoStorage): DemoDatabase {
     }
   }
 
+  function viewer(): UserProfile | null {
+    const uid = storage.getItem(DEMO_ROLE_KEY) === "admin" ? "uid-admin" : "uid-alex";
+    return raw.users.find((user) => user.uid === uid) ?? null;
+  }
+
   function persist() {
     storage.setItem(DB_KEY, JSON.stringify(raw));
     for (const listener of listeners) listener();
@@ -136,12 +152,12 @@ export function createDemoDatabase(storage: DemoStorage): DemoDatabase {
     },
     locations() {
       return raw.locations
-        .map(viewLocation)
+        .map((row) => viewLocation(row, viewer()))
         .sort((a, b) => (toDate(b.lastActivityAt)?.getTime() ?? 0) - (toDate(a.lastActivityAt)?.getTime() ?? 0));
     },
     location(id) {
       const row = raw.locations.find((item) => item.id === id);
-      return row ? viewLocation(row) : null;
+      return row ? viewLocation(row, viewer()) : null;
     },
     notes(id) {
       return (raw.notes[id] ?? []).map(
