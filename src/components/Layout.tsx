@@ -12,7 +12,7 @@ export function Layout() {
       <header className="header">
         <div className="header-inner">
           <NavLink to="/locations" className="brand">
-            <span className="brand-mark" aria-hidden="true" />
+            <img className="brand-mark" src="/tjb-mark.png" alt="" />
             Tropical Juice Bar
           </NavLink>
           <nav className="nav" aria-label="Primary">

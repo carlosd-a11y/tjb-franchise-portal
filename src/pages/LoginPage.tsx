@@ -55,7 +55,7 @@ export function LoginPage() {
     <div className="center-screen">
       <div className="auth-card">
         <span className="brand">
-          <span className="brand-mark" aria-hidden="true" />
+          <img className="brand-mark" src="/tjb-mark.png" alt="" />
           Tropical Juice Bar
         </span>
         <h1>{state.status === "mfa-challenge" ? "Authenticator" : "Sign in"}</h1>
